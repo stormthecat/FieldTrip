@@ -55,7 +55,7 @@ namespace FieldTrip
     {
         public const string PLUGIN_GUID = "yeliah.slugpupFieldtrip";
         public const string PLUGIN_NAME = "Slugpup Safari";
-        public const string PLUGIN_VERSION = "1.5.0.2";
+        public const string PLUGIN_VERSION = "1.5.0.3";
 
         private OptionsMenu optionsMenuInstance;
         private bool initialized;
@@ -117,6 +117,7 @@ namespace FieldTrip
                 IL.PlayerGraphics.MSCUpdate += playerGraphicsMSCUpdateHook;
                 IL.Leech.ConsiderOtherCreature += leechConsiderationHook;
                 IL.Spider.ConsiderPrey += spiderConsiderationHook;
+                IL.PlayerGraphics.DrawSprites += worldsFunniestILHook;
             }
             catch (Exception ex)
             {
@@ -124,6 +125,28 @@ namespace FieldTrip
                 base.Logger.LogError(ex);
             }
             //IL.PlayerGraphics.ctor += playerGraphicsCtorHook;
+        }
+
+        private void worldsFunniestILHook(ILContext il)
+        {
+            try
+            {
+                ILCursor c = new ILCursor(il);
+                Func<Instruction, bool>[] array = new Func<Instruction, bool>[3];
+                array[0] = ((Instruction i) => i.MatchMul());
+                array[1] = ((Instruction i) => i.MatchAdd());
+                array[2] = ((Instruction i) => i.MatchMul());
+                c.GotoNext(MoveType.After, array);
+                c.EmitDelegate<Func<float, float>>((val) =>
+                {
+                    return val*2;
+                });
+            }
+            catch (Exception e)
+            {
+                base.Logger.LogError("fun cancelled : " + e);
+                throw;
+            }
         }
 
         private List<AbstractPhysicalObject> grabSavedObjectsHook(On.SaveState.orig_GrabSavedObjects orig, SaveState self, AbstractCreature player, WorldCoordinate atPos)
