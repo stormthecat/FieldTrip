@@ -44,6 +44,7 @@ namespace FieldTrip
             itemPassing = this.config.Bind<bool>("slugpupsafari_itemPassing_checkbox", true);
             playerItemMoving = this.config.Bind<bool>("slugpupsafari_playerItemMoving_checkbox", false);
             rivDrownProtection = this.config.Bind<bool>("slugpupsafari_rivDrownProtection_checkbox", true);
+            bigHeadMode = this.config.Bind<bool>("slugpupsafari_bigHeadMode_checkbox", false);
 
 
             //myriad Keybinds
@@ -89,10 +90,12 @@ namespace FieldTrip
             OpTab opTab2 = new OpTab(this, "Keep Item Config");
             OpTab opTab3 = new OpTab(this, "Creature Immunities");
             OpTab opTab4 = new OpTab(this, "Item Passing");
+            OpTab opTab5 = new OpTab(this, "Silliness");
+
             //OpTab myriadItemPassing = new OpTab(this, "Myriad Item Passing");
             this.Tabs = new OpTab[]
             {
-                opTab, opTab2, opTab3, opTab4
+                opTab, opTab2, opTab3, opTab4, opTab5
             };
             OpContainer tab1Container = new OpContainer(new Vector2(0, 0));
             opTab.AddItems(tab1Container);
@@ -207,7 +210,15 @@ namespace FieldTrip
 
             };
             opTab4.AddItems(element4);
-
+            vert_pos = VERT_POS_INIT;
+            UIelement[] element5 = new UIelement[]
+            {
+                new OpLabel(TITLE_HORIZONTAL, vert_pos, "Silliness", true),
+                new OpCheckBox(bigHeadMode, CHECKBOX_HORIZONTAL, vert_pos -= CHECKBOX_VERT_OFFSET),
+                new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Big Brain Mode", false),
+                new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos+DESC_OFFSET, "(Double's the size of your slugpup's head for maximum brainage)", false),
+            };
+            opTab5.AddItems(element5);
             /*vert_pos = VERT_POS_INIT;
             UIelement[] myriadStuff = new UIelement[]
             {
@@ -271,6 +282,7 @@ namespace FieldTrip
         public static Configurable<bool> itemPassing;
         public static Configurable<bool> playerItemMoving;
         public static Configurable<bool> rivDrownProtection;
+        public static Configurable<bool> bigHeadMode;
 
 
         /*public static Configurable<KeyCode> upInputController5;
