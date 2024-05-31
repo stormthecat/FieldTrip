@@ -5,6 +5,7 @@ using MonoMod.Cil;
 using MoreSlugcats;
 using RWCustom;
 using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Diagnostics.Eventing.Reader;
 using System.Linq;
@@ -36,18 +37,22 @@ using static System.Net.Mime.MediaTypeNames;
  * [X]  UPDATE DESC
  * [X]  UNBREAK OVERSEERS
  * 
- * >>>>> 1.5.1 <<<<<
+ * >>>>> 1.6.0 <<<<<
  * [0]  CHANGE VERSION AND WRITE PATCH NOTES
  * [X]  INVESTIGATE JUNGLE LEACHES
  * [X]  FIX GOURM ENDING STARVING PUPS (couldnt replicate)
  * [0]  EXCEPTION TO KILLZONE FOR STACKED PUPS
  * [X]  FIX VERSIONING AND TEST UPDATE
- * [0]  ARTI BOMB RESISTANCE
+ * [X]  ARTI BOMB RESISTANCE
  * [X]  DELETION MEMLEAK FIX (AI TRACKERS? -- NOPE)
  * [X]  WIPE SLEASERS
- * [/]  RIV WARP RETURNS
+ * [X]  RIV WARP RETURNS
  *          - Stop pups from spawning in ceiling
- *          - Other players
+ * [0]  MIROS PROTECTION
+ * [X]  STACK STUN PROTECTION
+ * [X]  CAMPAIGN SPECIFIC OPTIONS
+ * [X]  CONFIGURABLE STACK SIZE
+ * [0]  FIX AUTO PALETTE
  * 
  * 
  * >>>>> NEED MORE INFO/CONSIDERATION <<<<<
@@ -115,12 +120,11 @@ namespace FieldTrip
             //On.SaveState.SpawnSavedObjectsAndCreatures += spawnSavedStuffHook;
             On.SaveState.GrabSavedCreatures += grabSavedCreaturesHook;
             On.SaveState.GrabSavedObjects += grabSavedObjectsHook;
-
-
             On.MoreSlugcats.SlugNPCAI.Update += SlugNPCUpdateHook_On;
             On.Player.LungUpdate += lungUpdateHook;
             On.Player.CanIPickThisUp += canIPickThisUpdate;
             On.MoreSlugcats.SlugNPCAI.PassingGrab += passingGrabHook;
+            On.Player.SlugOnBack.SlugToBack += slugToBackHook;
             //IL.MoreSlugcats.SlugNPCAI.PassingGrab += passingGrabILHook;
             try
             {
@@ -135,6 +139,10 @@ namespace FieldTrip
                 IL.Leech.Crawl += leechCrawlHook;
                 IL.Spider.ConsiderPrey += spiderConsiderationHook;
                 IL.PlayerGraphics.DrawSprites += worldsFunniestILHook;
+                IL.Explosion.Update += explosionUpdateILHook;
+                IL.Player.Stun += playerStunILHook;
+                IL.Player.SlugOnBack.GraphicsModuleUpdated += graphicsModuleUpdatedILHook;
+
             }
             catch (Exception ex)
             {
@@ -144,7 +152,114 @@ namespace FieldTrip
             //IL.PlayerGraphics.ctor += playerGraphicsCtorHook;
         }
 
+        private void slugToBackHook(On.Player.SlugOnBack.orig_SlugToBack orig, Player.SlugOnBack self, Player playerToBack)
+        {
+            if (OptionsMenu.maxStack.Value <= 0)
+                return;
+            orig(self, playerToBack);
+        }
 
+        private void graphicsModuleUpdatedILHook(ILContext il)
+        {
+            try
+            {
+                ILCursor c = new ILCursor(il);
+                c.GotoNext(MoveType.After, i => i.MatchCallvirt<Creature>("get_Consious"));
+                c.Emit(OpCodes.Ldarg_0);
+                c.EmitDelegate<Func<bool, Player.SlugOnBack, bool>>((val, slugOnBack) =>
+                {
+                    if (!val && !slugOnBack.slugcat.dead && OptionsMenu.stunProtection.Value)
+                        return true;
+                    return val;
+                });
+
+            }
+            catch (Exception e)
+            {
+                base.Logger.LogError("graphicsModuleUpdatedILHook encountered an error : " + e);
+                throw;
+            }
+        }
+
+        private void playerStunILHook(ILContext il)
+        {
+            try
+            {
+                ILCursor c = new ILCursor(il);
+                c.GotoNext(MoveType.After,i => i.MatchLdfld<Player.SlugOnBack>("slugcat"));
+                c.EmitDelegate<Func<object, object>>((obj) =>
+                {
+                    if (OptionsMenu.stunProtection.Value)
+                        return null;
+                    return obj;
+                });
+
+            }
+            catch (Exception e)
+            {
+                base.Logger.LogError("playerStunILHook encountered an error : " + e);
+                throw;
+            }
+        }
+
+        private void explosionUpdateILHook(ILContext il)
+        {
+            try
+            {
+                ILCursor c = new ILCursor(il);
+
+                while (c.TryGotoNext(MoveType.Before,
+                    x => x.MatchIsinst("Player"),
+                    x => x.MatchLdfld<Player>("SlugCatClass"),
+                    x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>("Artificer"),
+                    x => x.MatchCall(typeof(ExtEnum<SlugcatStats.Name>).GetMethod("op_Equality"))))
+                {
+                    base.Logger.LogMessage("explosionUpdateILHook found an arti check");
+                    Player player = null;
+                    c.EmitDelegate<Func<object, object>>((obj) =>
+                    { 
+                        player = (Player)obj;
+                        return obj;
+                    });
+                    c.Index += 4;
+                    c.EmitDelegate<Func<bool, bool>>((var) =>
+                    {
+                        
+                        if (OptionsMenu.artiBombProtection.Value && player?.AI != null && player.room.game.StoryCharacter == MoreSlugcatsEnums.SlugcatStatsName.Artificer)
+                            return true;
+                        return var;
+                    });
+                }
+                c = new ILCursor(il);
+                while (c.TryGotoNext(MoveType.Before,
+                    x => x.MatchIsinst("Player"),
+                    x => x.MatchLdfld<Player>("SlugCatClass"),
+                    x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>("Artificer"),
+                    x => x.MatchCall(typeof(ExtEnum<SlugcatStats.Name>).GetMethod("op_Inequality"))))
+                {
+                    base.Logger.LogMessage("explosionUpdateILHook found an arti check");
+
+                    Player player = null;
+                    c.EmitDelegate<Func<object, object>>((obj) =>
+                    {
+                        player = (Player)obj;
+                        return obj;
+                    });
+                    c.Index += 4;
+                    c.EmitDelegate<Func<bool, bool>>((var) =>
+                    {
+                        if (OptionsMenu.artiBombProtection.Value && player?.AI != null && player.room.game.StoryCharacter == MoreSlugcatsEnums.SlugcatStatsName.Artificer)
+                            return false;
+                        return var;
+                    });
+                }
+            }
+            catch (Exception e)
+            {
+                base.Logger.LogError("explosionUpdateILHook encountered an error : " + e);
+                throw;
+            }
+        }
 
         private void worldsFunniestILHook(ILContext il)
         {
@@ -291,23 +406,20 @@ namespace FieldTrip
 
         private void bitterHook(On.MoreSlugcats.MSCRoomSpecificScript.MS_bitterstart.orig_Update orig, MSCRoomSpecificScript.MS_bitterstart self, bool eu)
         {
-            //Debug.Log("BITTER COUNT: " + self.waitCounter);
+            Vector2 coords = new Vector2(35, 15);
+            Vector2 coordsCreature = new Vector2(700, 300);
+
+            IntVector2 intCoords = new IntVector2(35, 15);
             AbstractCreature firstAlivePlayer = self.room.game.FirstAlivePlayer;
             Player player = (self.room.game.Players.Count > 0 && firstAlivePlayer != null) ? (firstAlivePlayer.realizedCreature as Player) : null;
-            //if (player != null && self.waitCounter > 0 && !player.inShortcut && player.firstChunk.pos.x <= 700f && self.room.game.cameras[0].currentCameraPosition == 0 && self.fadeIn == null)
-
-            if (self.waitCounter == 196)
+            if (player != null && self.waitCounter > 0 && !player.inShortcut && player.firstChunk.pos.x <= 700f && self.room.game.cameras[0].currentCameraPosition == 0 && self.fadeIn == null)
             {
-                Vector2 coords = new Vector2(35, 15);
-                spawnMyFriends(self.room, coords);
-                PrintRoomContents(self.room);
-                orig(self, eu);
-                /*self.room.game.SpawnCritters(self.room.game.GetStorySession.saveState.GrabSavedCreatures(firstAlivePlayer, self.room.ToWorldCoordinate(coords)), firstAlivePlayer);
-                self.room.game.SpawnObjs(self.room.game.GetStorySession.saveState.GrabSavedObjects(firstAlivePlayer, self.room.ToWorldCoordinate(coords)));*/
-                //feedMyFriends(self.room);
+                self.room.game.SpawnCritters(self.room.game.GetStorySession.saveState.GrabSavedCreatures(firstAlivePlayer, self.room.ToWorldCoordinate(intCoords)), firstAlivePlayer);
+                self.room.game.SpawnObjs(self.room.game.GetStorySession.saveState.GrabSavedObjects(firstAlivePlayer, self.room.ToWorldCoordinate(intCoords)));
+                placeMyFriends(self.room,coordsCreature);
+
             }
-            else
-                orig(self, eu);
+            orig(self, eu);
         }
         void PrintRoomContents(Room room)
         {
@@ -475,7 +587,7 @@ namespace FieldTrip
                 {
                     if (self.owner.grasps[i] != null && self.owner.grasps[i].grabbed is Player && self.counter > 10)
                     {
-                        //int pupTowerSize = 0;
+                        int pupTowerSize = 0;
                         //reset grab counter
                         self.counter = 0;
                         self.increment = false;
@@ -487,28 +599,35 @@ namespace FieldTrip
                             //ensure Player.SlugOnBack != null
                             if (nextSlug.slugOnBack == null)
                             {
-                                /*if(OptionsMenu.infinitePupStack.Value || pupTowerSize < OptionsMenu.maxPupSlider.Value)
-                                    nextSlug.slugOnBack = new Player.SlugOnBack(nextSlug);*/
                                 nextSlug.slugOnBack = new Player.SlugOnBack(nextSlug);
+                                nextSlug.slugOnBack = new Player.SlugOnBack(nextSlug);
+                                pupTowerSize++;
 
                             }
-                            //pupTowerSize++;
                             while (nextSlug.slugOnBack.slugcat != null && nextSlug.slugOnBack.HasASlug)
                             {
+                                pupTowerSize++;
                                 nextSlug = nextSlug.slugOnBack.slugcat;
                                 //pupTowerSize++;
                                 if (nextSlug.slugOnBack == null)
                                 {
-                                    /*if(OptionsMenu.infinitePupStack.Value || pupTowerSize < OptionsMenu.maxPupSlider.Value)
-                                    nextSlug.slugOnBack = new Player.SlugOnBack(nextSlug);*/
                                     nextSlug.slugOnBack = new Player.SlugOnBack(nextSlug);
+                                    nextSlug.slugOnBack = new Player.SlugOnBack(nextSlug);
+                                    pupTowerSize++;
+
                                 }
                             }
                         }
+                        //Debug.Log("SLUGUP SAFARI:\n\tStack size= " + pupTowerSize + "\n\tMax stack is infinite= " + OptionsMenu.infinitePupStack.Value + "\n\tMax stack value= " + OptionsMenu.maxStack.Value);
                         //remove slug from hand and place it at the top of the stack
-                        nextSlug.slugOnBack.SlugToBack(slugInHand);
-                        self.owner.ReleaseGrasp(i);
-                        adjustTower(self.owner);
+                       if (OptionsMenu.infinitePupStack.Value || pupTowerSize + 1 < OptionsMenu.maxStack.Value)
+                        {
+                            nextSlug.slugOnBack.SlugToBack(slugInHand);
+                            self.owner.ReleaseGrasp(i);
+                            adjustTower(self.owner);
+                        }
+
+                        
                         
                     }
                 }
@@ -517,6 +636,7 @@ namespace FieldTrip
         }
         void adjustTower(Player player)
         {
+            
             //trying to simulate a shortcut
             List<AbstractPhysicalObject> allConnectedObjects = player.abstractCreature.GetAllConnectedObjects();
             Room room = player.room;
@@ -766,6 +886,7 @@ namespace FieldTrip
         }
         void slugpupTumble(Player basePup)
         {
+
             //recursivly destroy the tower above this slug
             if (basePup != null)
             {
@@ -881,19 +1002,19 @@ namespace FieldTrip
         {
             try
             {
-                //put cursor before releasegrasp and get_cat is called
+                //put cursor after releasegrasp and get_cat is called
                 ILCursor c = new ILCursor(il);
                 c.GotoNext(i => i.MatchLdsfld<SlugNPCAI.BehaviorType>("OnHead"));
                 c.GotoNext(i => i.MatchCall<SlugNPCAI>("get_cat"));
-                c.Index--;
 
-                c.Index++;//hope this doesn't break
+                //hope this doesn't break
                 c.Emit(OpCodes.Pop);
 
                 //put place holder after release grasp
                 ILCursor placeholder = new ILCursor(c);
                 placeholder.GotoNext(i => i.MatchCallvirt<Creature>("ReleaseGrasp"));
                 placeholder.Index++;
+
                 //make label after releasegrasp
                 var label = il.DefineLabel();
                 placeholder.MarkLabel(label);                
@@ -1051,7 +1172,13 @@ namespace FieldTrip
                     return false;
                 });
                 c.Emit(OpCodes.Brtrue_S, label);
-
+                /*c.GotoNext(MoveType.After,i => i.MatchIsinst("Player"));
+                c.EmitDelegate<Func<object, object>>((val) =>
+                {
+                    if (OptionsMenu.maxStack.Value <= 0)
+                        return null;
+                    return val;
+                });*/
             }
             catch (Exception e)
             {
@@ -1237,7 +1364,7 @@ namespace FieldTrip
 
         void spawnMyFriends(Room room, Vector2 coord)
         {
-            Debug.Log("SLUGPUP SAFARI: Spawn my friends coords: " + coord.ToString());
+            //Debug.Log("SLUGPUP SAFARI: Spawn my friends coords: " + coord.ToString());
             bool debug = RainWorld.ShowLogs;
             AbstractCreature firstAlivePlayer = room.game.FirstAlivePlayer;
             if (room.game.Players.Count > 0 && firstAlivePlayer != null && firstAlivePlayer.realizedCreature != null && firstAlivePlayer.realizedCreature.room == room)
@@ -1253,6 +1380,15 @@ namespace FieldTrip
                         //skip player
                         if (room.abstractRoom.creatures[i].creatureTemplate.type == CreatureTemplate.Type.Slugcat)
                             continue;
+
+                        Vector2 temp = coord + Custom.RNV();
+                        IntVector2  intCoord = new IntVector2(Mathf.RoundToInt(temp.x), Mathf.RoundToInt(temp.y));
+
+                        //set location
+                        if (debug)
+                            Debug.Log("Slugpup Safari: >>>>> Moving " + room.abstractRoom.creatures[i].ToString() + " to " + room.ToWorldCoordinate(intCoord).ToString());
+                        room.abstractRoom.creatures[i].pos = room.ToWorldCoordinate(intCoord);
+                        coord[1] += 1f;
                         //realize if not realized
                         if (room.abstractRoom.creatures[i].realizedCreature == null)
                         {
@@ -1260,22 +1396,16 @@ namespace FieldTrip
                                 Debug.Log("Slugpup Safari: >>>>> SPAWNING " + room.abstractRoom.creatures[i].ToString());
                             room.abstractRoom.creatures[i].Realize();
                         }
-                        //set location
-                        if (debug)
-                            Debug.Log("Slugpup Safari: >>>>> Moving " + room.abstractRoom.creatures[i].ToString() + " to " + room.ToWorldCoordinate(coord).ToString());
-                        room.abstractRoom.creatures[i].pos = room.ToWorldCoordinate(coord);
-                        coord[1] += 1;
+
                         if ((room.abstractRoom.creatures[i].realizedCreature is Player) && (room.abstractRoom.creatures[i].realizedCreature as Player).isNPC)
                         {
                             int foodToAdd = (room.abstractRoom.creatures[i].realizedCreature as Player).MaxFoodInStomach - (room.abstractRoom.creatures[i].realizedCreature as Player).CurrentFood;
                             (room.abstractRoom.creatures[i].realizedCreature as Player).SetMalnourished(false);
                             (room.abstractRoom.creatures[i].realizedCreature as Player).AddFood((int)Mathf.Max(0, foodToAdd));
                             (room.abstractRoom.creatures[i].realizedCreature as Player).SuperHardSetPosition(coord + Custom.RNV());
-                            if (debug)
-                                Debug.Log("Slugpup Safari: >>>>> NEW PUP POSITION " + room.abstractRoom.creatures[i].pos.ToString());
                         }
                         else
-                            placeFriend(room.abstractRoom.creatures[i].realizedCreature, coord+Custom.RNV());
+                            placeFriend(room.abstractRoom.creatures[i].realizedCreature, coord + Custom.RNV());
                     }
                     if (debug)
                         Debug.Log("Slugpup Safari: Handled All Creatures");
@@ -1306,7 +1436,7 @@ namespace FieldTrip
                     else
                     {
                         offset++;
-                        obj.Move(new WorldCoordinate(room.abstractRoom.index, 35 + offset, 13, -1));
+                        obj.Move(new WorldCoordinate(room.abstractRoom.index, Mathf.RoundToInt(pos.x) + offset, Mathf.RoundToInt(pos.y), -1));
                     }
 
                 }

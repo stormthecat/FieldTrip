@@ -14,8 +14,8 @@
     <Deterministic>true</Deterministic>
     <DebugType>Portable</DebugType>
   </PropertyGroup>
-    <PropertyGroup>
-	<LangVersion>11</LangVersion>
+  <PropertyGroup>
+	<LangVersion>latest</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
