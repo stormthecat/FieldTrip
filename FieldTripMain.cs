@@ -38,21 +38,21 @@ using static System.Net.Mime.MediaTypeNames;
  * [X]  UNBREAK OVERSEERS
  * 
  * >>>>> 1.6.0 <<<<<
- * [0]  CHANGE VERSION AND WRITE PATCH NOTES
+ * [X]  CHANGE VERSION AND WRITE PATCH NOTES
  * [X]  INVESTIGATE JUNGLE LEACHES
  * [X]  FIX GOURM ENDING STARVING PUPS (couldnt replicate)
- * [0]  EXCEPTION TO KILLZONE FOR STACKED PUPS
+ * [X]  EXCEPTION TO KILLZONE FOR STACKED PUPS
  * [X]  FIX VERSIONING AND TEST UPDATE
  * [X]  ARTI BOMB RESISTANCE
  * [X]  DELETION MEMLEAK FIX (AI TRACKERS? -- NOPE)
  * [X]  WIPE SLEASERS
  * [X]  RIV WARP RETURNS
  *          - Stop pups from spawning in ceiling
- * [0]  MIROS PROTECTION
+ * [X]  MIROS PROTECTION
  * [X]  STACK STUN PROTECTION
  * [X]  CAMPAIGN SPECIFIC OPTIONS
  * [X]  CONFIGURABLE STACK SIZE
- * [0]  FIX AUTO PALETTE
+ * [X]  FIX AUTO PALETTE
  * 
  * 
  * >>>>> NEED MORE INFO/CONSIDERATION <<<<<
@@ -75,7 +75,7 @@ namespace FieldTrip
     {
         public const string PLUGIN_GUID = "yeliah.slugpupFieldtrip";
         public const string PLUGIN_NAME = "Slugpup Safari";
-        public const string PLUGIN_VERSION = "1.5.0.4";
+        public const string PLUGIN_VERSION = "1.6.0";
 
         private OptionsMenu optionsMenuInstance;
         private bool initialized;
@@ -125,6 +125,7 @@ namespace FieldTrip
             On.Player.CanIPickThisUp += canIPickThisUpdate;
             On.MoreSlugcats.SlugNPCAI.PassingGrab += passingGrabHook;
             On.Player.SlugOnBack.SlugToBack += slugToBackHook;
+            On.MirosBirdAI.DoIWantToBiteCreature += mirosDoIBiteHook;
             //IL.MoreSlugcats.SlugNPCAI.PassingGrab += passingGrabILHook;
             try
             {
@@ -142,6 +143,8 @@ namespace FieldTrip
                 IL.Explosion.Update += explosionUpdateILHook;
                 IL.Player.Stun += playerStunILHook;
                 IL.Player.SlugOnBack.GraphicsModuleUpdated += graphicsModuleUpdatedILHook;
+                IL.Creature.Update += creatureUpdateILHook;
+                IL.PlayerGraphics.ctor += playerGraphicsCtorILHook;
 
             }
             catch (Exception ex)
@@ -149,7 +152,74 @@ namespace FieldTrip
                 Debug.Log(string.Format("Slugpup Safari: OnModsInit IL failed init error", ex));
                 base.Logger.LogError(ex);
             }
-            //IL.PlayerGraphics.ctor += playerGraphicsCtorHook;
+        }
+
+        private void playerGraphicsCtorILHook(ILContext il)
+        {
+            try
+            {
+                ILCursor c = new ILCursor(il);
+                c.GotoNext(MoveType.After,
+                    x => x.MatchLdarg(0),
+                    x => x.MatchLdfld<PlayerGraphics>("player"),
+                    x => x.MatchCallvirt<Player>("get_playerState"),
+                    x => x.MatchLdfld<PlayerState>("playerNumber"),
+                    x => x.Match(OpCodes.Brtrue_S));
+                c.Index--;
+                c.Emit(OpCodes.Ldarg_0);
+                c.EmitDelegate<Func<int, PlayerGraphics, bool>>((val, graphicsModule) =>
+                {
+                    Player player = graphicsModule?.player;
+                    if (player != null && player.isNPC)
+                        return true;
+                    return val != 0;
+                });
+
+            }
+            catch (Exception e)
+            {
+                base.Logger.LogError("playerGraphicsCtorILHook encountered an error : " + e);
+                throw;
+            }
+        }
+
+        
+        private void creatureUpdateILHook(ILContext il)
+        {
+            try
+            {
+                ILCursor c = new ILCursor(il);
+                c.GotoNext(MoveType.After, i => i.MatchLdstr("{0} Fell out of room!"));
+                c.GotoNext(MoveType.Before, i => i.MatchLdsfld<ModManager>("CoopAvailable"));
+                ILCursor placeholder = new ILCursor(c);
+                placeholder.GotoNext(MoveType.After, i => i.MatchCallvirt<AbstractWorldEntity>("Destroy"));
+                var label = il.DefineLabel();
+                placeholder.MarkLabel(label);
+                c.Emit(OpCodes.Ldarg_0);
+                c.EmitDelegate<Func<Creature, bool>>((creature) =>
+                {
+                    Player player = creature as Player;
+                    if (player == null)
+                        return false;
+                    //base.Logger.LogMessage("Prevented killzone death");
+                    return (OptionsMenu.killzoneProtection.Value && player.onBack != null);
+                });
+                c.Emit(OpCodes.Brtrue, label);
+
+
+            }
+            catch (Exception e)
+            {
+                base.Logger.LogError("creatureUpdateILHook encountered an error : " + e);
+                throw;
+            }
+        }
+
+        private bool mirosDoIBiteHook(On.MirosBirdAI.orig_DoIWantToBiteCreature orig, MirosBirdAI self, AbstractCreature creature)
+        {
+            if ((creature?.realizedCreature as Player) != null && (creature.realizedCreature as Player).onBack != null)
+                return false;
+            return orig(self, creature);
         }
 
         private void slugToBackHook(On.Player.SlugOnBack.orig_SlugToBack orig, Player.SlugOnBack self, Player playerToBack)
@@ -214,7 +284,7 @@ namespace FieldTrip
                     x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>("Artificer"),
                     x => x.MatchCall(typeof(ExtEnum<SlugcatStats.Name>).GetMethod("op_Equality"))))
                 {
-                    base.Logger.LogMessage("explosionUpdateILHook found an arti check");
+                    //base.Logger.LogMessage("explosionUpdateILHook found an arti check");
                     Player player = null;
                     c.EmitDelegate<Func<object, object>>((obj) =>
                     { 
@@ -237,7 +307,7 @@ namespace FieldTrip
                     x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>("Artificer"),
                     x => x.MatchCall(typeof(ExtEnum<SlugcatStats.Name>).GetMethod("op_Inequality"))))
                 {
-                    base.Logger.LogMessage("explosionUpdateILHook found an arti check");
+                    //base.Logger.LogMessage("explosionUpdateILHook found an arti check");
 
                     Player player = null;
                     c.EmitDelegate<Func<object, object>>((obj) =>
@@ -661,6 +731,8 @@ namespace FieldTrip
                     
 
                 }
+                /*if(player.room.game.rainWorld.options.JollyPlayerCount > 1)
+                    PlayerGraphics.PopulateJollyColorArray((player.room.game.FirstAlivePlayer.realizedCreature as Player).slugcatStats.name);*/
             }
 
             //add them in order

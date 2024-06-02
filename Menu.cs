@@ -50,6 +50,8 @@ namespace FieldTrip
             stunProtection = this.config.Bind<bool>("slugpupsafari_stunProtection_checkbox", true);
             maxStack = this.config.Bind<int>("slugpupsafari_maxStack_textBox", 1);
             mirosBirdProtection = this.config.Bind<bool>("slugpupsafari_mirosBirdProtection_checkbox", true);
+            killzoneProtection = this.config.Bind<bool>("slugpupsafari_killzone_checkbox", true);
+
 
             //myriad Keybinds
             /*upInputController5 = this.config.Bind<KeyCode>("slugpupsafari_upInputCON5_keybind", KeyCode.Joystick5Button8);
@@ -147,6 +149,9 @@ namespace FieldTrip
                 new OpCheckBox(stunProtection, CHECKBOX_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos -= CHECKBOX_VERT_OFFSET),
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos, "Stun Protection", true),
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos + DESC_OFFSET, "(Slugpups won't fall off of stunned players and stunned pups can be piggybacked)", false),
+                new OpCheckBox(killzoneProtection, CHECKBOX_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos -= CHECKBOX_VERT_OFFSET),
+                new OpLabel(CHECKBOX_LABEL_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos, "Killzone Protection", true),
+                new OpLabel(CHECKBOX_LABEL_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos + DESC_OFFSET, "(Piggybacked slugcats will not die if out of bounds)", false),
                 new OpCheckBox(infinitePupStack, CHECKBOX_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos -= CHECKBOX_VERT_OFFSET),
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos, "Infinite Stacking", true),
                 new OpTextBox(maxStack, new Vector2(CHECKBOX_LABEL_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos - LABEL_VERT_OFFSET), NUM_INPUT_SIZE),
@@ -224,16 +229,16 @@ namespace FieldTrip
             {
                 new OpLabel(TITLE_HORIZONTAL, vert_pos, "Creature Protection Options", true),
                 new OpCheckBox(leechProtection, CHECKBOX_HORIZONTAL, vert_pos -= CHECKBOX_VERT_OFFSET),
-                new OpImage(new Vector2(CHECKBOX_LABEL_HORIZONTAL+5f, vert_pos), "Kill_Leech"),
+                new OpImage(new Vector2(CHECKBOX_LABEL_HORIZONTAL+5f, vert_pos + 5f), "Kill_Leech"),
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL+IMAGE_TEXT_OFFSET, vert_pos, "Leech Protection", true),
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos + DESC_OFFSET, "(Leeches will not target piggybacked slugpups)", false),
                 new OpCheckBox(coalescipedeProtection, CHECKBOX_HORIZONTAL, vert_pos -= CHECKBOX_VERT_OFFSET),
-                new OpImage(new Vector2(CHECKBOX_LABEL_HORIZONTAL, vert_pos), "Kill_SmallSpider"),
+                new OpImage(new Vector2(CHECKBOX_LABEL_HORIZONTAL, vert_pos+ 5f), "Kill_SmallSpider"),
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL+IMAGE_TEXT_OFFSET, vert_pos, "Coalescipede Protection", true),
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos + DESC_OFFSET, "(Coalescipedes will not target piggybacked slugpups)", false),
                 new OpCheckBox(mirosBirdProtection, CHECKBOX_HORIZONTAL, vert_pos -= CHECKBOX_VERT_OFFSET),
-                new OpImage(new Vector2(CHECKBOX_LABEL_HORIZONTAL, vert_pos), "Kill_MirosBird"),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL+IMAGE_TEXT_OFFSET, vert_pos, "Miros Bird Protection", true),
+                new OpImage(new Vector2(CHECKBOX_LABEL_HORIZONTAL, vert_pos+ 5f), "Kill_MirosBird"),
+                new OpLabel(CHECKBOX_LABEL_HORIZONTAL+IMAGE_TEXT_OFFSET + 15f, vert_pos, "Miros Bird Protection", true),
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos + DESC_OFFSET, "(Miros Birds will not bite piggybacked slugpups)", false),
             };
             opTab3.AddItems(element3);
@@ -356,6 +361,7 @@ namespace FieldTrip
         public static Configurable<bool> stunProtection;
         public static Configurable<int> maxStack;
         public static Configurable<bool> mirosBirdProtection;
+        public static Configurable<bool> killzoneProtection;
 
         /*public static Configurable<KeyCode> upInputController5;
         public static Configurable<KeyCode> downInputController5;
