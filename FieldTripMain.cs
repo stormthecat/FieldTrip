@@ -9,6 +9,7 @@ using System.CodeDom;
 using System.Collections.Generic;
 using System.Diagnostics.Eventing.Reader;
 using System.Linq;
+using System.Management.Instrumentation;
 using System.Security;
 using UnityEngine;
 using static System.Net.Mime.MediaTypeNames;
@@ -75,7 +76,7 @@ namespace FieldTrip
     {
         public const string PLUGIN_GUID = "yeliah.slugpupFieldtrip";
         public const string PLUGIN_NAME = "Slugpup Safari";
-        public const string PLUGIN_VERSION = "1.6.0";
+        public const string PLUGIN_VERSION = "1.6.1";
 
         private OptionsMenu optionsMenuInstance;
         private bool initialized;
@@ -426,8 +427,9 @@ namespace FieldTrip
             Room room = self.room;
             if (self.primed && self.foundCell != null && self.foundCell.room == room && self.foundCell.usingTime > 0f && !save.miscWorldSaveData.moonHeartRestored)
             {
-                save.BringUpToDate(room.game);
+                //save.BringUpToDate(room.game);
                 orig(self, eu);
+                //Debug.Log("SLUGPUP SAFARI: Saving Heart and Core");
                 save.BringUpToDate(room.game);
                 AddItemsToPending(room.abstractRoom,save, false);
                 AddCrittersToPending(room.abstractRoom, save, false);
@@ -435,6 +437,9 @@ namespace FieldTrip
                 AddCrittersToPending(room.world.GetAbstractRoom("MS_HEART"), save, false);
                 save.denPosition = "MS_bitterstart";
                 save.progression.SaveWorldStateAndProgression(false);
+                save.pendingFriendCreatures.Clear();
+                save.pendingObjects.Clear();
+
             }
             else
                 orig(self, eu);
@@ -459,7 +464,7 @@ namespace FieldTrip
             for (int n = 0; n < room.entities.Count; n++)
             {
                 AbstractCreature obj = room.entities[n] as AbstractCreature;
-                if (obj != null)
+                if (obj != null && obj.creatureTemplate.type != CreatureTemplate.Type.Slugcat)
                 {
                     save.pendingFriendCreatures.Add(SaveState.AbstractCreatureToStringStoryWorld(obj));
                     Debug.Log("SLUGPUP SAFARI: Saved critter manually - " + obj.ToString());
@@ -540,6 +545,7 @@ namespace FieldTrip
         
         void moveToBitterStart(Room room)
         {
+
             //offset ensures coords are different
             int offset = 0;
 
@@ -549,8 +555,8 @@ namespace FieldTrip
             SaveState save = room.game.GetStorySession.saveState;
 
             //save pups
-            Debug.Log("SLUGPUP SAFARI: Saving den objects");
-            SaveState.forcedEndRoomToAllowwSave = room.game.FirstAlivePlayer.Room.name;
+            Debug.Log("SLUGPUP SAFARI: Saving den objects in den "+ room.game.FirstAlivePlayer.Room.name);
+            SaveState.forcedEndRoomToAllowwSave = "MS_bitterstart";
             save.BringUpToDate(room.game);
             SaveState.forcedEndRoomToAllowwSave = "";
 
@@ -567,45 +573,135 @@ namespace FieldTrip
         }
         int moveFromHeart(Room room, int offset)
         {
-            for (int m = 0; m < room.physicalObjects.Length; m++)
+            
+            for (int i = 0; i < room.abstractRoom.entities.Count; i++)
             {
-                for (int n = 0; n < room.physicalObjects[m].Count; n++)
+                AbstractPhysicalObject obj = room.abstractRoom.entities[i] as AbstractPhysicalObject;
+                obj.LoseAllStuckObjects();
+                //skip player and energy cell
+                if (obj.realizedObject == null || obj.realizedObject is EnergyCell || obj is AbstractCreature)
                 {
-                    AbstractPhysicalObject obj = room.physicalObjects[m][n].abstractPhysicalObject;
-                    obj.LoseAllStuckObjects();
-                    //skip player and energy cell
-                    if (obj.realizedObject == null || obj.realizedObject is EnergyCell || (obj.realizedObject is Player && !(obj.realizedObject as Player).isNPC))
-                    {
-                        continue;
-                    }
-                    AbstractPhysicalObject objCopy = null;
-                    if (obj is AbstractCreature)
-                        objCopy = SaveState.AbstractCreatureFromString(obj.world, SaveState.AbstractCreatureToStringSingleRoomWorld(obj as AbstractCreature), true);
-                    else
-                        objCopy = SaveState.AbstractPhysicalObjectFromString(obj.world, obj.ToString());
-                    //skip if copy failed :(
-                    if (objCopy == null)
-                    {
-                        Debug.Log("SLUGPUP SAFARI: " + obj.realizedObject.ToString() + " failed to copy and is null");
-                        continue;
-                    }
-                    objCopy.Abstractize(objCopy.pos);
-                    objCopy.Move(new WorldCoordinate(room.world.GetAbstractRoom("MS_bitterstart").index, 35 + offset, 13, -1));
-                    //force pup positions
-                    if (objCopy.realizedObject is Player)
-                    {
-                        int foodToAdd = (objCopy.realizedObject as Player).MaxFoodInStomach - (objCopy.realizedObject as Player).CurrentFood;
+                    continue;
+                }
+                AbstractPhysicalObject objCopy = null;
+                objCopy = SaveState.AbstractPhysicalObjectFromString(obj.world, obj.ToString());
+                //skip if copy failed :(
+                if (objCopy == null)
+                {
+                    Debug.Log("SLUGPUP SAFARI (entities): " + obj.realizedObject.ToString() + " failed to copy and is null");
+                    continue;
+                }
+                objCopy.Abstractize(objCopy.pos);
+                objCopy.Move(new WorldCoordinate(room.world.GetAbstractRoom("MS_bitterstart").index, 35 + offset, 13, -1));
+                Debug.Log("SLUGPUP SAFARI: Moving Obj - " + objCopy.ToString() + ", New Coord is " + objCopy.pos.ToString());
+                offset++;
+            }
+            for (int i = 0; i < room.abstractRoom.creatures.Count; i++)
+            {
+                AbstractCreature obj = room.abstractRoom.creatures[i];
+                obj.LoseAllStuckObjects();
+                //skip player and energy cell
+                if (obj.realizedObject == null || obj.creatureTemplate.type == CreatureTemplate.Type.Slugcat)
+                {
+                    continue;
+                }
+                AbstractCreature objCopy = SaveState.AbstractCreatureFromString(obj.world, SaveState.AbstractCreatureToStringSingleRoomWorld(obj), true);
+                
+                //skip if copy failed :(
+                if (objCopy == null)
+                {
+                    Debug.Log("SLUGPUP SAFARI (creatures): " + obj.realizedObject.ToString() + " failed to copy and is null");
+                    continue;
+                }
+                objCopy.Abstractize(objCopy.pos);
+                objCopy.Move(new WorldCoordinate(room.world.GetAbstractRoom("MS_bitterstart").index, 35 + offset, 13, -1));
+                //force pup positions
+                if (objCopy.realizedObject is Player)
+                {
+                    int foodToAdd = (objCopy.realizedObject as Player).MaxFoodInStomach - (objCopy.realizedObject as Player).CurrentFood;
 
-                        (objCopy.realizedObject as Player).SuperHardSetPosition(new Vector2(35, 13) + Custom.RNV());
-
-                    }
-
-                    Debug.Log("SLUGPUP SAFARI: Moving Obj - " + objCopy.ToString()+ ", New Coord is "+ objCopy.pos.ToString());
-                    offset++;
+                    (objCopy.realizedObject as Player).SuperHardSetPosition(new Vector2(35, 13) + Custom.RNV());
 
                 }
+
+                Debug.Log("SLUGPUP SAFARI: Moving Creature - " + objCopy.ToString() + ", New Coord is " + objCopy.pos.ToString());
+                offset++;
+
+            }
+            for (int i = 0; i < room.abstractRoom.entitiesInDens.Count; i++)
+            {
+                AbstractCreature obj = room.abstractRoom.entitiesInDens[i] as AbstractCreature;
+                obj.LoseAllStuckObjects();
+                //skip player and energy cell
+                if (obj.realizedObject == null || obj.creatureTemplate.type == CreatureTemplate.Type.Slugcat)
+                {
+                    continue;
+                }
+                AbstractCreature objCopy = SaveState.AbstractCreatureFromString(obj.world, SaveState.AbstractCreatureToStringSingleRoomWorld(obj), true);
+
+                //skip if copy failed :(
+                if (objCopy == null)
+                {
+                    Debug.Log("SLUGPUP SAFARI (entities in dens): " + obj.realizedObject.ToString() + " failed to copy and is null");
+                    continue;
+                }
+                objCopy.Abstractize(objCopy.pos);
+                objCopy.Move(new WorldCoordinate(room.world.GetAbstractRoom("MS_bitterstart").index, 35 + offset, 13, -1));
+                //force pup positions
+                if (objCopy.realizedObject is Player)
+                {
+                    int foodToAdd = (objCopy.realizedObject as Player).MaxFoodInStomach - (objCopy.realizedObject as Player).CurrentFood;
+
+                    (objCopy.realizedObject as Player).SuperHardSetPosition(new Vector2(35, 13) + Custom.RNV());
+
+                }
+
+                Debug.Log("SLUGPUP SAFARI: Moving Den Creature - " + objCopy.ToString() + ", New Coord is " + objCopy.pos.ToString());
+                offset++;
+
             }
             return offset;
+            /*
+
+                        for (int m = 0; m < room.physicalObjects.Length; m++)
+                        {
+                            for (int n = 0; n < room.physicalObjects[m].Count; n++)
+                            {
+                                AbstractPhysicalObject obj = room.physicalObjects[m][n].abstractPhysicalObject;
+                                obj.LoseAllStuckObjects();
+                                //skip player and energy cell
+                                if (obj.realizedObject == null || obj.realizedObject is EnergyCell || (obj.realizedObject is Player && !(obj.realizedObject as Player).isNPC))
+                                {
+                                    continue;
+                                }
+                                AbstractPhysicalObject objCopy = null;
+                                if (obj is AbstractCreature)
+                                    objCopy = SaveState.AbstractCreatureFromString(obj.world, SaveState.AbstractCreatureToStringSingleRoomWorld(obj as AbstractCreature), true);
+                                else
+                                    objCopy = SaveState.AbstractPhysicalObjectFromString(obj.world, obj.ToString());
+                                //skip if copy failed :(
+                                if (objCopy == null)
+                                {
+                                    Debug.Log("SLUGPUP SAFARI: " + obj.realizedObject.ToString() + " failed to copy and is null");
+                                    continue;
+                                }
+                                objCopy.Abstractize(objCopy.pos);
+                                objCopy.Move(new WorldCoordinate(room.world.GetAbstractRoom("MS_bitterstart").index, 35 + offset, 13, -1));
+                                //force pup positions
+                                if (objCopy.realizedObject is Player)
+                                {
+                                    int foodToAdd = (objCopy.realizedObject as Player).MaxFoodInStomach - (objCopy.realizedObject as Player).CurrentFood;
+
+                                    (objCopy.realizedObject as Player).SuperHardSetPosition(new Vector2(35, 13) + Custom.RNV());
+
+                                }
+
+                                Debug.Log("SLUGPUP SAFARI: Moving Obj - " + objCopy.ToString()+ ", New Coord is "+ objCopy.pos.ToString());
+                                offset++;
+
+                            }
+                        }
+                        return offset;*/
         }
 
         void slugNPCInputPrinter(SlugNPCAI ai)
