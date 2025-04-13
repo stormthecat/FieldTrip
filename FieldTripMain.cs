@@ -12,6 +12,7 @@ using System.Linq;
 using System.Management.Instrumentation;
 using System.Security;
 using UnityEngine;
+using Watcher;
 using static System.Net.Mime.MediaTypeNames;
 
 
@@ -55,12 +56,25 @@ using static System.Net.Mime.MediaTypeNames;
  * [X]  CONFIGURABLE STACK SIZE
  * [X]  FIX AUTO PALETTE
  * 
+ *  * >>>>> 1.6.3 <<<<<
+ * [/]  CHANGE VERSION AND WRITE PATCH NOTES
+ * [0]  ADULT PUP STACKING
+ * [0]  WATCHER CLOAK
+ * [X]  WATCHER WARP
+ * [/]  BARNACLES
+ *          - fix collision
+ * [0]  TARDIGRADE FIX
+
+ * 
  * 
  * >>>>> NEED MORE INFO/CONSIDERATION <<<<<
  * [?]  FIX MAST ENDING
  * [?]  DMS TAIL FIX
  * [?]  PUPS STOP EATING LIVE FOOD
  * [?]  THE REFACTORING.
+ * [0]  JOLLY COOP OVERLAP
+ * [0]  HUNTER PUP FIX
+
 
 //if ((critter as Player)?.AI?.behaviorType == SlugNPCAI.BehaviorType.OnHead) 
 
@@ -76,7 +90,7 @@ namespace FieldTrip
     {
         public const string PLUGIN_GUID = "yeliah.slugpupFieldtrip";
         public const string PLUGIN_NAME = "Slugpup Safari";
-        public const string PLUGIN_VERSION = "1.6.1";
+        public const string PLUGIN_VERSION = "1.7.0";
 
         private OptionsMenu optionsMenuInstance;
         private bool initialized;
@@ -128,6 +142,9 @@ namespace FieldTrip
             On.Player.SlugOnBack.SlugToBack += slugToBackHook;
             On.MirosBirdAI.DoIWantToBiteCreature += mirosDoIBiteHook;
             //IL.MoreSlugcats.SlugNPCAI.PassingGrab += passingGrabILHook;
+            On.Watcher.WarpPoint.SpawnPendingObject += watcherSpawnPendingObjectHook;
+            On.Watcher.WarpPoint.RemovePlayers += watcherWarpRemovePlayersHook;
+            On.Player.ApplyWarpFatigue += playerWarpFatigueHook;
             try
             {
                 IL.MoreSlugcats.SlugNPCAI.Update += SlugNPCUpdateHook;
@@ -153,6 +170,84 @@ namespace FieldTrip
                 Debug.Log(string.Format("Slugpup Safari: OnModsInit IL failed init error", ex));
                 base.Logger.LogError(ex);
             }
+        }
+
+        private void playerWarpFatigueHook(On.Player.orig_ApplyWarpFatigue orig, Player self, RainWorldGame game)
+        {
+            StoryGameSession session = game.GetStorySession;
+            if (session != null && session.getFieldtripstoryGameSessionVals().pupStack != null && self?.slugOnBack?.slugcat != null)
+            {
+                Debug.Log("SLUGPUP SAFARI: clear saved stack at warp fatigue hook");
+                session.getFieldtripstoryGameSessionVals().pupStack.Clear();
+            }
+            grabStackForWarp(self);
+            slugpupTumble(self);
+            orig(self, game);
+        }
+
+        private void consumeStackForWarp(Player basePup)
+        {
+            StoryGameSession session = basePup.room.world.game.GetStorySession;
+            if (basePup != null && session != null)
+            {
+                Debug.Log("SLUGPUP SAFARI: trying to stack -> " + basePup.ToString());
+                List<Player> pupStack = session.getFieldtripstoryGameSessionVals().pupStack;
+                if(basePup.slugOnBack != null && basePup.slugOnBack.HasASlug)
+                    consumeStackForWarp(basePup.slugOnBack.slugcat);
+                if (pupStack is null)
+                    pupStack = new List<Player>();
+                Debug.Log("\tpupStack queue length -> " + pupStack.Count());
+                int index = pupStack.IndexOf(basePup);
+                if(index <= 0)
+                    Debug.Log("\tcannot stack -> " + basePup.ToString() + ", no base slug found (index:" + index + ")");
+                if (index > 0 && pupStack[index - 1] != null && pupStack[index - 1].slugOnBack != null)
+                {
+                    Debug.Log("\tstacking -> " + basePup.ToString() + " onto " + pupStack[index - 1].ToString());
+                    pupStack[index - 1].slugOnBack.SlugToBack(basePup);
+                    pupStack.RemoveAt(index - 1);
+                }
+            }
+        }
+        private void grabStackForWarp(Player basePup)
+        {
+            StoryGameSession session = basePup?.room?.world?.game?.GetStorySession;
+
+            if (basePup != null && session != null)
+            {
+                if ((basePup.slugOnBack != null && basePup.slugOnBack.HasASlug) || basePup.onBack != null)
+                {
+                    if (session.getFieldtripstoryGameSessionVals().pupStack is null)
+                        session.getFieldtripstoryGameSessionVals().pupStack = new List<Player>();
+                    Debug.Log("SLUGPUP SAFARI: queueing for stack -> " + basePup.ToString());
+                    session.getFieldtripstoryGameSessionVals().pupStack.Add(basePup);
+                    if (basePup.slugOnBack != null && basePup.slugOnBack.HasASlug)
+                        grabStackForWarp(basePup.slugOnBack.slugcat);                   
+
+                }
+            }
+        }
+        private void watcherWarpRemovePlayersHook(On.Watcher.WarpPoint.orig_RemovePlayers orig, WarpPoint self, int i)
+        {
+            StoryGameSession session = self.room.game.GetStorySession;
+            if (session != null && session.getFieldtripstoryGameSessionVals().pupStack != null)
+            {
+                Debug.Log("SLUGPUP SAFARI: clear saved stack at remove player hook");
+                session.getFieldtripstoryGameSessionVals().pupStack.Clear();
+            }
+            grabStackForWarp(self.room.game.Players[i].realizedCreature as Player);
+            slugpupTumble(self.room.game.Players[i].realizedCreature as Player);
+            orig(self,i);
+        }
+
+        private bool watcherSpawnPendingObjectHook(On.Watcher.WarpPoint.orig_SpawnPendingObject orig, WarpPoint self, AbstractPhysicalObject nextObject, bool immediateSpawn)
+        {
+            Player player = nextObject.realizedObject as Player;
+            bool output = orig(self, nextObject, immediateSpawn);
+            if (player != null && output)
+            {
+                consumeStackForWarp(player);
+            }
+            return output;
         }
 
         private void playerGraphicsCtorILHook(ILContext il)
@@ -1091,7 +1186,7 @@ namespace FieldTrip
                         }
                         self.cat.spearOnBack.SpearToBack(self.cat.grasps[0].grabbed as Spear);
                     }
-                    else if (self.cat.grasps[0].grabbed is Creature && !(self.cat.Grabability(self.cat.grasps[0].grabbed) == Player.ObjectGrabability.OneHand))
+                    else if (self.cat.grasps[0].grabbed is Creature && !(self.cat.Grabability(self.cat.grasps[0].grabbed) == Player.ObjectGrabability.OneHand || self.cat.grasps[0].grabbed is Barnacle))
                     {
                         self.cat.ReleaseGrasp(0);
                         Debug.Log("Pup releasing invalid creature");
@@ -1154,7 +1249,7 @@ namespace FieldTrip
                         {
                             if (self.WantsToEatThis(realizedCreature) && (self.cat.grasps[0] == null || !self.WantsToEatThis(self.cat.grasps[0].grabbed)))
                             {
-                                if ((realizedCreature == null || realizedCreature.dead || self.creature.personality.sympathy <= 0.8f) && self.cat.Grabability(realizedCreature) == Player.ObjectGrabability.OneHand && (OptionsMenu.allowGrabbingNoodleflies.Value || !(realizedCreature is SmallNeedleWorm)) && (OptionsMenu.allowGrabbingCentipedes.Value || !(self.preyTracker.MostAttractivePrey.representedCreature.realizedCreature is Centipede)))
+                                if ((realizedCreature == null || realizedCreature.dead || self.creature.personality.sympathy <= 0.8f) && (self.cat.Grabability(realizedCreature) == Player.ObjectGrabability.OneHand && (OptionsMenu.allowGrabbingNoodleflies.Value || !(realizedCreature is SmallNeedleWorm)) && (OptionsMenu.allowGrabbingCentipedes.Value || !(self.preyTracker.MostAttractivePrey.representedCreature.realizedCreature is Centipede))) || (realizedCreature is Barnacle && !(realizedCreature as Barnacle).hasShell))
                                 {
                                     self.cat.NPCForceGrab(realizedCreature);
                                     break;

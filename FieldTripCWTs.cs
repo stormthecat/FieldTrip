@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using Watcher;
 
 namespace FieldTrip
 {
@@ -39,5 +40,17 @@ namespace FieldTrip
         }
         private static readonly ConditionalWeakTable<SaveState, SaveCWT> TheSaveCWT = new ConditionalWeakTable<SaveState, SaveCWT>();
         public static SaveCWT getFieldtripSaveVals(this SaveState save) => TheSaveCWT.GetValue(save, _ => new SaveCWT());
+
+        public class storyGameSessionCWT
+        {
+            public List<Player> pupStack;
+
+            public storyGameSessionCWT()
+            {
+                this.pupStack = null;
+            }
+        }
+        private static readonly ConditionalWeakTable<StoryGameSession, storyGameSessionCWT> TheStoryGameSessionCWT = new ConditionalWeakTable<StoryGameSession, storyGameSessionCWT>();
+        public static storyGameSessionCWT getFieldtripstoryGameSessionVals(this StoryGameSession session) => TheStoryGameSessionCWT.GetValue(session, _ => new storyGameSessionCWT());
     }
 }
