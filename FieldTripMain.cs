@@ -56,14 +56,15 @@ using static System.Net.Mime.MediaTypeNames;
  * [X]  CONFIGURABLE STACK SIZE
  * [X]  FIX AUTO PALETTE
  * 
- *  * >>>>> 1.6.3 <<<<<
+ *  * >>>>> 1.7.0 <<<<<
  * [/]  CHANGE VERSION AND WRITE PATCH NOTES
  * [0]  ADULT PUP STACKING
  * [0]  WATCHER CLOAK
- * [X]  WATCHER WARP
+ * [/]  WATCHER WARP
+ *          - double update on wrong warp
  * [/]  BARNACLES
  *          - fix collision
- * [0]  TARDIGRADE FIX
+ * [X]  TARDIGRADE FIX
 
  * 
  * 
@@ -74,6 +75,7 @@ using static System.Net.Mime.MediaTypeNames;
  * [?]  THE REFACTORING.
  * [0]  JOLLY COOP OVERLAP
  * [0]  HUNTER PUP FIX
+ * [0]  SPEARMASTER GRAB FIX
 
 
 //if ((critter as Player)?.AI?.behaviorType == SlugNPCAI.BehaviorType.OnHead) 
@@ -143,8 +145,12 @@ namespace FieldTrip
             On.MirosBirdAI.DoIWantToBiteCreature += mirosDoIBiteHook;
             //IL.MoreSlugcats.SlugNPCAI.PassingGrab += passingGrabILHook;
             On.Watcher.WarpPoint.SpawnPendingObject += watcherSpawnPendingObjectHook;
-            On.Watcher.WarpPoint.RemovePlayers += watcherWarpRemovePlayersHook;
-            On.Player.ApplyWarpFatigue += playerWarpFatigueHook;
+            //On.Watcher.WarpPoint.RemovePlayers += watcherWarpRemovePlayersHook;
+            //On.Player.ApplyWarpFatigue += playerWarpFatigueHook;
+            On.Player.Update += playerUpdateHook;
+            On.Watcher.WarpPoint.NewWorldLoaded_Room += newWorldLoadedHook;
+            On.PlayerGraphics.Update += playerGraphicsUpdateHook;
+            On.RoomCamera.Update += roomCamUpdateHook;
             try
             {
                 IL.MoreSlugcats.SlugNPCAI.Update += SlugNPCUpdateHook;
@@ -172,7 +178,92 @@ namespace FieldTrip
             }
         }
 
-        private void playerWarpFatigueHook(On.Player.orig_ApplyWarpFatigue orig, Player self, RainWorldGame game)
+        private void roomCamUpdateHook(On.RoomCamera.orig_Update orig, RoomCamera self)
+        {
+            if (self?.spriteLeasers is null)
+                return;
+            for(int i = 0; i < self.spriteLeasers.Count; i++)
+            {
+                GraphicsModule graphicsModule = self.spriteLeasers[i].drawableObject as GraphicsModule;
+                if (graphicsModule != null)
+                {
+                    //Debug.Log((self.spriteLeasers[i].drawableObject as GraphicsModule).ToString());
+                    if(graphicsModule.owner != null)
+                        Debug.Log(graphicsModule.owner.ToString());
+                    else
+                        Debug.Log(graphicsModule.ToString());
+
+                    if (self.spriteLeasers[i].sprites is null)
+                        continue;
+                    FSprite sprite = self.spriteLeasers[i].sprites[0];
+                    if (sprite != null)
+                    {
+                        Debug.Log("\t 0th sprite: " + sprite.ToString() + " at depth: " + sprite.depth);
+
+                    }
+                }
+                
+                /*for (int j = 0; j < self.spriteLeasers[i].sprites.Length; j++)
+                {
+                    FSprite sprite = self.spriteLeasers[i].sprites[j];
+                    if (sprite != null)
+                    {
+                        Debug.Log("\t" + sprite.ToString() + " at depth: " + sprite.depth);
+
+                    }
+                }*/
+            }
+            
+            orig(self);
+        }
+
+        private void playerGraphicsUpdateHook(On.PlayerGraphics.orig_Update orig, PlayerGraphics self)
+        {
+            orig(self);
+            /*Player player = self.owner as Player;
+            if (player != null && player.isCamo && player.isNPC)
+            {
+                if(self.lightSource is null)
+                    self.lightSource = new LightSource(player.mainBodyChunk.pos, false, Color.Lerp(new Color(1f, 1f, 1f), (ModManager.MSC && player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Slugpup) ? player.ShortCutColor() : PlayerGraphics.SlugcatColor(self.CharacterForColor), 0.8f), player);
+                self.lightSource.color = Color.Lerp(new Color(1f, 1f, 1f), (ModManager.MSC && player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Slugpup) ? player.ShortCutColor() : PlayerGraphics.SlugcatColor(self.CharacterForColor), 0.8f);
+                self.lightSource.HardSetRad(5f);
+                self.lightSource.HardSetAlpha(1f);
+            }*/
+        }
+
+        private void newWorldLoadedHook(On.Watcher.WarpPoint.orig_NewWorldLoaded_Room orig, WarpPoint self, Room newRoom)
+        {
+            StoryGameSession session = self.room.game.GetStorySession;
+            if (session != null)
+            {
+                if(session.getFieldtripstoryGameSessionVals().pupStack != null)
+                {
+                    Debug.Log("SLUGPUP SAFARI: clear saved stack ");
+                    session.getFieldtripstoryGameSessionVals().pupStack.Clear();
+                }
+                for(int i = 0; i < session.Players.Count; i++)
+                {
+                    Debug.Log("SLUGPUP SAFARI: saving stack of Player " + (i+1) + "/" + session.Players.Count);
+                    grabStackForWarp(self.room.game.Players[i].realizedCreature as Player);
+                    slugpupTumble(self.room.game.Players[i].realizedCreature as Player);
+                }
+            }
+            orig(self, newRoom);
+        }
+
+        private void playerUpdateHook(On.Player.orig_Update orig, Player self, bool eu)
+        {
+            orig(self, eu);
+            if(self.onBack != null)
+            {
+                self.isCamo = self.onBack.isCamo;
+                self.camoCharge = 5f;
+                self.rippleDeathIntensity = 0;
+                self.rippleDeathTime = 0;
+            }
+        }
+
+        /*private void playerWarpFatigueHook(On.Player.orig_ApplyWarpFatigue orig, Player self, RainWorldGame game)
         {
             StoryGameSession session = game.GetStorySession;
             if (session != null && session.getFieldtripstoryGameSessionVals().pupStack != null && self?.slugOnBack?.slugcat != null)
@@ -183,7 +274,7 @@ namespace FieldTrip
             grabStackForWarp(self);
             slugpupTumble(self);
             orig(self, game);
-        }
+        }*/
 
         private void consumeStackForWarp(Player basePup)
         {
@@ -226,7 +317,7 @@ namespace FieldTrip
                 }
             }
         }
-        private void watcherWarpRemovePlayersHook(On.Watcher.WarpPoint.orig_RemovePlayers orig, WarpPoint self, int i)
+        /*private void watcherWarpRemovePlayersHook(On.Watcher.WarpPoint.orig_RemovePlayers orig, WarpPoint self, int i)
         {
             StoryGameSession session = self.room.game.GetStorySession;
             if (session != null && session.getFieldtripstoryGameSessionVals().pupStack != null)
@@ -237,7 +328,7 @@ namespace FieldTrip
             grabStackForWarp(self.room.game.Players[i].realizedCreature as Player);
             slugpupTumble(self.room.game.Players[i].realizedCreature as Player);
             orig(self,i);
-        }
+        }*/
 
         private bool watcherSpawnPendingObjectHook(On.Watcher.WarpPoint.orig_SpawnPendingObject orig, WarpPoint self, AbstractPhysicalObject nextObject, bool immediateSpawn)
         {
@@ -429,15 +520,16 @@ namespace FieldTrip
 
         private void worldsFunniestILHook(ILContext il)
         {
+            // /j stuff
             try
             {
-                ILCursor c = new ILCursor(il);
+                ILCursor s = new ILCursor(il);
                 Func<Instruction, bool>[] array = new Func<Instruction, bool>[3];
                 array[0] = ((Instruction i) => i.MatchMul());
                 array[1] = ((Instruction i) => i.MatchAdd());
                 array[2] = ((Instruction i) => i.MatchMul());
-                c.GotoNext(MoveType.After, array);
-                c.EmitDelegate<Func<float, float>>((val) =>
+                s.GotoNext(MoveType.After, array);
+                s.EmitDelegate<Func<float, float>>((val) =>
                 {
                     if (OptionsMenu.bigHeadMode.Value)
                         return val * 2;
@@ -448,6 +540,31 @@ namespace FieldTrip
             catch (Exception e)
             {
                 base.Logger.LogError("fun cancelled : " + e);
+                throw;
+            }
+
+            // /srs stuff
+            try
+            {
+                ILCursor c = new ILCursor(il);
+                c.GotoNext(MoveType.Before, i => i.MatchCallOrCallvirt<PlayerGraphics>("get_RenderAsPup"));
+                c.Emit(OpCodes.Ldarg_0);
+                c.Emit(OpCodes.Ldarga, 1);
+                c.EmitDelegate((PlayerGraphics graphics, ref RoomCamera.SpriteLeaser sLeaser) =>
+                {
+                    Player player = graphics.player;
+                    bool cloakMe = false;
+                    if (player != null && (player.slugOnBack == null || !player.slugOnBack.HasASlug))
+                        cloakMe = amIOnTheWatcher(player);
+                    if(cloakMe)
+                        sLeaser.sprites[0].shader = Custom.rainWorld.Shaders["PlayerCamoMaskBeforePlayer"];
+
+                });
+
+            }
+            catch (Exception e)
+            {
+                base.Logger.LogError("DrawSpritesIL encountered an error: " + e);
                 throw;
             }
         }
@@ -901,6 +1018,18 @@ namespace FieldTrip
             //trying to simulate a shortcut
             List<AbstractPhysicalObject> allConnectedObjects = player.abstractCreature.GetAllConnectedObjects();
             Room room = player.room;
+
+            //remove initial player
+            /*for (int j = 0; j < room.game.cameras[0].spriteLeasers.Count; j++)
+            {
+                if (room.game.cameras[0].spriteLeasers[j].drawableObject.Equals(player.graphicsModule))
+                {
+                    room.game.cameras[0].spriteLeasers[j].RemoveAllSpritesFromContainer();
+                    room.game.cameras[0].spriteLeasers.RemoveAt(j);
+                }
+
+            }*/
+
             //remove all scugs and delete them from the update list
             for (int i = 0; i < allConnectedObjects.Count; i++)
             {
@@ -926,6 +1055,7 @@ namespace FieldTrip
                     PlayerGraphics.PopulateJollyColorArray((player.room.game.FirstAlivePlayer.realizedCreature as Player).slugcatStats.name);*/
             }
 
+
             //add them in order
             for (int i = 0; i < allConnectedObjects.Count; i++)
             {
@@ -936,6 +1066,8 @@ namespace FieldTrip
                     //Debug.Log("SLUGPUP SAFARI: ADDED " + allConnectedObjects[i].realizedObject.ToString());
                 }
             }
+            //put player back
+            //room.game.cameras[0].NewObjectInRoom(player.graphicsModule);
             /*Debug.Log("SLUGPUP SAFARI: Drawables: " + room.drawableObjects.Count);
             Debug.Log("SLUGPUP SAFARI: Update List: " + room.updateList.Count);
             Debug.Log("SLUGPUP SAFARI: Entities: " + room.abstractRoom.entities.Count);
@@ -943,7 +1075,17 @@ namespace FieldTrip
             //Debug.Log("SLUGPUP SAFARI: Sleasers: " + room.game.cameras[0].spriteLeasers.Count); 
 
         }
-
+        bool amIOnTheWatcher(Player pup)
+        {
+            if(ModManager.Watcher && pup?.onBack != null)
+            {
+                if (pup.onBack.SlugCatClass == WatcherEnums.SlugcatStatsName.Watcher)
+                    return true;
+                else
+                    return amIOnTheWatcher(pup.onBack);
+            }
+            return false;
+        }
         private void grabUpdateHook(On.Player.orig_GrabUpdate orig, Player self, bool eu)
         {
             bool shouldIIncrement = false;
@@ -1249,7 +1391,7 @@ namespace FieldTrip
                         {
                             if (self.WantsToEatThis(realizedCreature) && (self.cat.grasps[0] == null || !self.WantsToEatThis(self.cat.grasps[0].grabbed)))
                             {
-                                if ((realizedCreature == null || realizedCreature.dead || self.creature.personality.sympathy <= 0.8f) && (self.cat.Grabability(realizedCreature) == Player.ObjectGrabability.OneHand && (OptionsMenu.allowGrabbingNoodleflies.Value || !(realizedCreature is SmallNeedleWorm)) && (OptionsMenu.allowGrabbingCentipedes.Value || !(self.preyTracker.MostAttractivePrey.representedCreature.realizedCreature is Centipede))) || (realizedCreature is Barnacle && !(realizedCreature as Barnacle).hasShell))
+                                if ((realizedCreature == null || realizedCreature.dead || self.creature.personality.sympathy <= 0.8f) && (self.cat.Grabability(realizedCreature) == Player.ObjectGrabability.OneHand && (OptionsMenu.allowGrabbingNoodleflies.Value || !(realizedCreature is SmallNeedleWorm)) && (OptionsMenu.allowGrabbingCentipedes.Value || !(self.preyTracker.MostAttractivePrey.representedCreature.realizedCreature is Centipede)) && (OptionsMenu.allowGrabbingTardigrades.Value || !(self.preyTracker.MostAttractivePrey.representedCreature.realizedCreature is Tardigrade))) || (realizedCreature is Barnacle && !(realizedCreature as Barnacle).hasShell))
                                 {
                                     self.cat.NPCForceGrab(realizedCreature);
                                     break;

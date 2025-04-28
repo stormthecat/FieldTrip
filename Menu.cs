@@ -25,6 +25,7 @@ namespace FieldTrip
             allowGrabbing5PNeurons = this.config.Bind<bool>("slugpupsafari_allowgrabbing5Pneurons_checkbox", false);
             allowGrabbingShrooms = this.config.Bind<bool>("slugpupsafari_allowgrabbingShrooms_checkbox", false);
             allowGrabbingKarmaFlowers = this.config.Bind<bool>("slugpupsafari_allowgrabbingKarmaFlowers_checkbox", true);
+            allowGrabbingTardigrades = this.config.Bind<bool>("slugpupsafari_allowgrabbingTardigrades_checkbox", false);
             preventDraggingVines = this.config.Bind<bool>("slugpupsafari_preventDraggingVines_checkbox", false);
             allowBackspear = this.config.Bind<bool>("slugpupsafari_allowBackspear_checkbox", true);
             leechProtection = this.config.Bind<bool>("slugpupsafari_leechProtection_checkbox", false);
@@ -208,6 +209,9 @@ namespace FieldTrip
                 new OpImage(new Vector2(SUB_SUB_CHECKBOX_HORIZONTAL+CHECKBOX_IMAGE_OFFSET-5f, vert_pos), "Kill_Centipede1"),
                 new OpLabel(SUB_SUB_CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Allow Grabbing Centipedes", true),
                 new OpLabel(SUB_SUB_CHECKBOX_LABEL_HORIZONTAL, vert_pos + DESC_OFFSET, "(Slugpups cannot eat when you are moving, so be careful)", false),
+                new OpCheckBox(allowGrabbingTardigrades, SUB_SUB_CHECKBOX_HORIZONTAL, vert_pos -= SUB_SUB_CHECKBOX_VERT_OFFSET),
+                new OpLabel(SUB_SUB_CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Allow Grabbing Tardigrades", true),
+                new OpLabel(SUB_SUB_CHECKBOX_LABEL_HORIZONTAL, vert_pos + DESC_OFFSET, "(Only Applicable if Watcher is Enabled)", false),
                 new OpCheckBox(allowGrabbing5PNeurons, SUB_SUB_CHECKBOX_HORIZONTAL, vert_pos -= SUB_SUB_CHECKBOX_VERT_OFFSET),
                 new OpImage(new Vector2(SUB_SUB_CHECKBOX_HORIZONTAL+CHECKBOX_IMAGE_OFFSET, vert_pos), "Symbol_Neuron"),
                 new OpLabel(SUB_SUB_CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Allow Grabbing Five Pebble's Neurons", true),
@@ -336,6 +340,7 @@ namespace FieldTrip
         public static Configurable<bool> allowGrabbing5PNeurons;
         public static Configurable<bool> allowGrabbingShrooms;
         public static Configurable<bool> allowGrabbingKarmaFlowers;
+        public static Configurable<bool> allowGrabbingTardigrades;
         public static Configurable<bool> preventDraggingVines;
         public static Configurable<bool> allowBackspear;
         public static Configurable<bool> leechProtection;
