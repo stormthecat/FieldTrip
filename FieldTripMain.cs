@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Management.Instrumentation;
+using System.Reflection;
 using System.Security;
 using UnityEngine;
 using Watcher;
@@ -65,6 +66,7 @@ using static System.Net.Mime.MediaTypeNames;
  * [/]  BARNACLES
  *          - fix collision
  * [X]  TARDIGRADE FIX
+ * [0]  FIX WARP DELETION
 
  * 
  * 
@@ -97,6 +99,7 @@ namespace FieldTrip
         private OptionsMenu optionsMenuInstance;
         private bool initialized;
         private int layer = 0;
+        private int containerNum = 5;
 
         public object Playergraphics { get; private set; }
 
@@ -151,6 +154,11 @@ namespace FieldTrip
             On.Watcher.WarpPoint.NewWorldLoaded_Room += newWorldLoadedHook;
             On.PlayerGraphics.Update += playerGraphicsUpdateHook;
             On.RoomCamera.Update += roomCamUpdateHook;
+            On.PlayerGraphics.InitiateSprites += playerGraphicsInitSpritesHook;
+            On.PlayerGraphics.AddToContainer += playerAddToContainerHook;
+            On.Player.SlugOnBack.ChangeOverlap += changeOverlapHook;
+            On.PlayerGraphics.ctor += playerGraphicsCtorHook;
+
             try
             {
                 IL.MoreSlugcats.SlugNPCAI.Update += SlugNPCUpdateHook;
@@ -176,6 +184,67 @@ namespace FieldTrip
                 Debug.Log(string.Format("Slugpup Safari: OnModsInit IL failed init error", ex));
                 base.Logger.LogError(ex);
             }
+        }
+
+        private void playerGraphicsCtorHook(On.PlayerGraphics.orig_ctor orig, PlayerGraphics self, PhysicalObject ow)
+        {
+            orig(self, ow);
+            if (self.internalContainerObjects is null)
+            {
+                Debug.Log("SLUGPUP SAFARI: pGraphics internal objects is null, creating a new list");
+                self.internalContainerObjects = new List<GraphicsModule.ObjectHeldInInternalContainer>();
+            }
+        }
+
+        private void changeOverlapHook(On.Player.SlugOnBack.orig_ChangeOverlap orig, Player.SlugOnBack self, bool newOverlap)
+        {
+            if (self.owner?.graphicsModule != null && self.slugcat?.graphicsModule != null)
+            {
+                Player player = self.owner;
+                PlayerGraphics graphicsModule = self.owner.graphicsModule as PlayerGraphics;
+                RoomCamera.SpriteLeaser sLeaser = graphicsModule.getFieldtripPlayerGraphicsVals().sLeaser;
+                if (sLeaser != null)
+                {
+                    int index = sLeaser.getFieldtripSpriteLeaserVals().sluppyContainerIndex;
+                    if (newOverlap)
+                    {
+                        graphicsModule.ReleaseSpecificInternallyContainedObjectSprites(self.slugcat.graphicsModule);
+                    }
+                    /*else
+                    {
+                        if (index >= 0)
+                            graphicsModule.AddObjectToInternalContainer(self.slugcat.graphicsModule, index);
+                    }*/
+                }
+            }
+
+            orig(self, newOverlap);
+        }
+
+        private void playerAddToContainerHook(On.PlayerGraphics.orig_AddToContainer orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContatiner)
+        {
+            orig(self, sLeaser, rCam, newContatiner);
+            int sluppyIndex = sLeaser.getFieldtripSpriteLeaserVals().sluppyContainerIndex;
+            if (sluppyIndex < 0)
+            {
+                base.Logger.LogError("No sluppy container found");
+            }
+            sLeaser.sprites[0].container.AddChild(sLeaser.containers[sluppyIndex]);
+            sLeaser.containers[sluppyIndex].MoveBehindOtherNode(sLeaser.sprites[0]);
+        }
+
+        private void playerGraphicsInitSpritesHook(On.PlayerGraphics.orig_InitiateSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
+        {
+            FContainer sluppyContainer = new FContainer();
+            if (sLeaser.containers == null)
+                sLeaser.containers = new FContainer[0];
+            sLeaser.getFieldtripSpriteLeaserVals().sluppyContainerIndex = sLeaser.containers.Length;
+            Array.Resize(ref sLeaser.containers, sLeaser.containers.Length + 1);
+            sLeaser.containers[sLeaser.containers.Length - 1] = sluppyContainer;
+
+            orig(self, sLeaser, rCam);
+
+            self.getFieldtripPlayerGraphicsVals().sLeaser = sLeaser;
         }
 
         private void roomCamUpdateHook(On.RoomCamera.orig_Update orig, RoomCamera self)
@@ -413,6 +482,24 @@ namespace FieldTrip
         {
             if (OptionsMenu.maxStack.Value <= 0)
                 return;
+            if (self.owner?.graphicsModule != null)
+            {
+                Player player = self.owner;
+                PlayerGraphics graphicsModule = self.owner.graphicsModule as PlayerGraphics;
+                RoomCamera.SpriteLeaser sLeaser = graphicsModule.getFieldtripPlayerGraphicsVals().sLeaser;
+                if (sLeaser != null)
+                {
+                    int index = sLeaser.getFieldtripSpriteLeaserVals().sluppyContainerIndex;
+                    //base.Logger.LogMessage("sLeaser internal objects: " + sLeaser.containers.Length);
+                    if (playerToBack?.graphicsModule != null && index >= 0)
+                    {
+                        base.Logger.LogMessage("Moving " + playerToBack.ToString() + "'s " + playerToBack.graphicsModule.ToString() + " to " + self.owner.ToString() + "'s container " + index);
+                        graphicsModule.AddObjectToInternalContainer(playerToBack.graphicsModule, index);
+                    }
+                }
+            }
+
+            
             orig(self, playerToBack);
         }
 
@@ -1002,7 +1089,7 @@ namespace FieldTrip
                         {
                             nextSlug.slugOnBack.SlugToBack(slugInHand);
                             self.owner.ReleaseGrasp(i);
-                            adjustTower(self.owner);
+                            //adjustTower(self.owner);
                         }
 
                         
@@ -1014,29 +1101,15 @@ namespace FieldTrip
         }
         void adjustTower(Player player)
         {
-            
             //trying to simulate a shortcut
             List<AbstractPhysicalObject> allConnectedObjects = player.abstractCreature.GetAllConnectedObjects();
             Room room = player.room;
-
-            //remove initial player
-            /*for (int j = 0; j < room.game.cameras[0].spriteLeasers.Count; j++)
-            {
-                if (room.game.cameras[0].spriteLeasers[j].drawableObject.Equals(player.graphicsModule))
-                {
-                    room.game.cameras[0].spriteLeasers[j].RemoveAllSpritesFromContainer();
-                    room.game.cameras[0].spriteLeasers.RemoveAt(j);
-                }
-
-            }*/
-
             //remove all scugs and delete them from the update list
             for (int i = 0; i < allConnectedObjects.Count; i++)
             {
                 if (allConnectedObjects[i].realizedObject != null && allConnectedObjects[i].realizedObject is Player)
                 {
                     //Debug.Log("SLUGPUP SAFARI: Removing " + allConnectedObjects[i].realizedObject.ToString());
-                    
                     room.RemoveObject(allConnectedObjects[i].realizedObject);
                     for (int j = 0; j < room.game.cameras[0].spriteLeasers.Count; j++)
                     {
@@ -1045,16 +1118,10 @@ namespace FieldTrip
                             room.game.cameras[0].spriteLeasers[j].RemoveAllSpritesFromContainer();
                             room.game.cameras[0].spriteLeasers.RemoveAt(j);
                         }
-                        
                     }
                     room.CleanOutObjectNotInThisRoom(allConnectedObjects[i].realizedObject);
-                    
-
                 }
-                /*if(player.room.game.rainWorld.options.JollyPlayerCount > 1)
-                    PlayerGraphics.PopulateJollyColorArray((player.room.game.FirstAlivePlayer.realizedCreature as Player).slugcatStats.name);*/
             }
-
 
             //add them in order
             for (int i = 0; i < allConnectedObjects.Count; i++)
@@ -1066,14 +1133,6 @@ namespace FieldTrip
                     //Debug.Log("SLUGPUP SAFARI: ADDED " + allConnectedObjects[i].realizedObject.ToString());
                 }
             }
-            //put player back
-            //room.game.cameras[0].NewObjectInRoom(player.graphicsModule);
-            /*Debug.Log("SLUGPUP SAFARI: Drawables: " + room.drawableObjects.Count);
-            Debug.Log("SLUGPUP SAFARI: Update List: " + room.updateList.Count);
-            Debug.Log("SLUGPUP SAFARI: Entities: " + room.abstractRoom.entities.Count);
-            Debug.Log("SLUGPUP SAFARI: Creatures: " + room.abstractRoom.creatures.Count);*/
-            //Debug.Log("SLUGPUP SAFARI: Sleasers: " + room.game.cameras[0].spriteLeasers.Count); 
-
         }
         bool amIOnTheWatcher(Player pup)
         {

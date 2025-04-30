@@ -52,5 +52,30 @@ namespace FieldTrip
         }
         private static readonly ConditionalWeakTable<StoryGameSession, storyGameSessionCWT> TheStoryGameSessionCWT = new ConditionalWeakTable<StoryGameSession, storyGameSessionCWT>();
         public static storyGameSessionCWT getFieldtripstoryGameSessionVals(this StoryGameSession session) => TheStoryGameSessionCWT.GetValue(session, _ => new storyGameSessionCWT());
+
+        public class playerGraphicsCWT
+        {
+            public RoomCamera.SpriteLeaser sLeaser;
+
+            public playerGraphicsCWT()
+            {
+            }
+        }
+        private static readonly ConditionalWeakTable<PlayerGraphics, playerGraphicsCWT> ThePlayerGraphicsCWT = new ConditionalWeakTable<PlayerGraphics, playerGraphicsCWT>();
+
+        public static playerGraphicsCWT getFieldtripPlayerGraphicsVals(this PlayerGraphics graphics) => ThePlayerGraphicsCWT.GetValue(graphics, _ => new playerGraphicsCWT());
+
+        public class spriteLeaserCWT
+        {
+            public int sluppyContainerIndex;
+
+            public spriteLeaserCWT()
+            {
+                this.sluppyContainerIndex = -1;
+            }
+        }
+        private static readonly ConditionalWeakTable<RoomCamera.SpriteLeaser, spriteLeaserCWT> TheSpriteLeaserCWT = new ConditionalWeakTable<RoomCamera.SpriteLeaser, spriteLeaserCWT>();
+        public static spriteLeaserCWT getFieldtripSpriteLeaserVals(this RoomCamera.SpriteLeaser graphics) => TheSpriteLeaserCWT.GetValue(graphics, _ => new spriteLeaserCWT());
     }
 }
+
