@@ -1,0 +1,11 @@
+Slugpup Safari 1.7 changenotes:
+- slugpups should be able to eat watcher food sources while piggybacked
+- added toggle to ban certain watcher creatures from being autograbbed
+- watcher's abilities should work with slugpups
+- adult slugNPC's are stackable again
+
+IMPORTANT NOTICE
+- The watcher campaign is not designed with slugpups in mind. If you play the watcher with pups expect bugs! I recommend using Visible ID or mousedrag and writing your pup's id in case it needs to be respawned (you can do this with the dev console mod by typing "spawn SlugNPC ID.-1.xxxx" and replacing the x's with the correct id). Additionally, slugpups may spawn in the walls of shelters, this is something out of my power to fix.
+- The watcher is still in development, so I will ignore some small graphical bugs as they are a lot of work to fix and are subject to change
+
+Improvements to drowning and explosion protection are planned
