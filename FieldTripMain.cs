@@ -61,9 +61,9 @@ using static System.Net.Mime.MediaTypeNames;
  * 
  * 
  *  * >>>>> 1.7.0 <<<<<
- * [/]  CHANGE VERSION AND WRITE PATCH NOTES
+ * [X]  CHANGE VERSION AND WRITE PATCH NOTES
  * [X]  ADULT PUP STACKING
- * [/]  WATCHER CLOAK
+ * [X]  WATCHER CLOAK
  * [X]  WATCHER WARP
  *          - fix pipes being funky
  * [X]  BARNACLES
@@ -71,12 +71,12 @@ using static System.Net.Mime.MediaTypeNames;
  * [X]  TARDIGRADE FIX
  * 
  * 
- *  * >>>>> 1.7.1 <<<<<
- * [/]  CHANGE VERSION AND WRITE PATCH NOTES
+ *  * >>>>> 1.7.4 <<<<<
+ * [0]  CHANGE VERSION AND WRITE PATCH NOTES
  * [0]  ARTI AND RIV CHANGES
  * [0]  MOTHER PASSAGE
  * [0]  CAMO GRAPHICS
-
+ * [0]  FOOD BAR GRAPHICS
  * 
  * 
  * 
@@ -105,7 +105,7 @@ namespace FieldTrip
     {
         public const string PLUGIN_GUID = "yeliah.slugpupFieldtrip";
         public const string PLUGIN_NAME = "Slugpup Safari";
-        public const string PLUGIN_VERSION = "1.7.1";
+        public const string PLUGIN_VERSION = "1.7.3";
 
         private OptionsMenu optionsMenuInstance;
         private bool initialized;
@@ -241,12 +241,15 @@ namespace FieldTrip
             try
             {
                 ILCursor c = new ILCursor(il);
+                var label = il.DefineLabel();
                 c.GotoNext(MoveType.After, i => i.MatchRet(),
                     i => i.MatchLdcI4(0));
                 c.Emit(OpCodes.Pop);
+                c.Emit(OpCodes.Ldarg_1);
+                c.Emit(OpCodes.Brtrue, label);
                 c.Emit(OpCodes.Ret);
+                c.MarkLabel(label);
                 c.Emit(OpCodes.Ldc_I4_0);
-                c.Index++;
             }
             catch (Exception e)
             {
@@ -646,6 +649,7 @@ namespace FieldTrip
 
         private void slugToBackHook(On.Player.SlugOnBack.orig_SlugToBack orig, Player.SlugOnBack self, Player playerToBack)
         {
+            //Debug.Log("Slug " + self.owner.ToString() + " to " + playerToBack.ToString());
             if (OptionsMenu.maxStack.Value <= 0)
                 return;
             
