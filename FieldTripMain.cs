@@ -71,7 +71,7 @@ using static System.Net.Mime.MediaTypeNames;
  * [X]  TARDIGRADE FIX
  * 
  * 
- *  * >>>>> 1.7.4 <<<<<
+ *  * >>>>> 1.7.5 <<<<<
  * [0]  CHANGE VERSION AND WRITE PATCH NOTES
  * [0]  ARTI AND RIV CHANGES
  * [0]  MOTHER PASSAGE
@@ -967,7 +967,7 @@ namespace FieldTrip
         private void artiEndingHook(On.MoreSlugcats.MSCRoomSpecificScript.LC_FINAL.orig_Update orig, MSCRoomSpecificScript.LC_FINAL self, bool eu)
         {
             orig(self, eu);
-            if (self.room.game.GetStorySession.saveState.deathPersistentSaveData.altEnding && !self.triggeredBoss && !self.endingTriggered && self.player != null && self.counter == 1)
+            if (self.room.game.GetStorySession.saveState.deathPersistentSaveData.altEnding && !self.triggeredBoss && !self.endingTriggered && self.counter == 1)
                 spawnMyFriends(self.room, new Vector2(2700f, 500f));
 
         }
