@@ -71,7 +71,7 @@ using static System.Net.Mime.MediaTypeNames;
  * [X]  TARDIGRADE FIX
  * 
  * 
- *  * >>>>> 1.7.5 <<<<<
+ *  * >>>>> 1.7.6 <<<<<
  * [0]  CHANGE VERSION AND WRITE PATCH NOTES
  * [0]  ARTI AND RIV CHANGES
  * [0]  MOTHER PASSAGE
@@ -1029,6 +1029,8 @@ namespace FieldTrip
             {
                 AbstractPhysicalObject obj = room.abstractRoom.entities[i] as AbstractPhysicalObject;
                 obj.LoseAllStuckObjects();
+                if (obj.realizedObject is Player plr) //ensure all slugonback data is reset!
+                    slugpupTumble(plr);
                 //skip player and energy cell
                 if (obj.realizedObject == null || obj.realizedObject is EnergyCell || obj is AbstractCreature)
                 {
