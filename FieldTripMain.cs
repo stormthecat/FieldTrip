@@ -71,11 +71,10 @@ using static System.Net.Mime.MediaTypeNames;
  * [X]  TARDIGRADE FIX
  * 
  * 
- *  * >>>>> 1.7.6 <<<<<
+ *  * >>>>> 1.7.7 <<<<<
  * [0]  CHANGE VERSION AND WRITE PATCH NOTES
  * [0]  ARTI AND RIV CHANGES
  * [0]  MOTHER PASSAGE
- * [0]  CAMO GRAPHICS
  * [0]  FOOD BAR GRAPHICS
  * 
  * 
@@ -105,7 +104,7 @@ namespace FieldTrip
     {
         public const string PLUGIN_GUID = "yeliah.slugpupFieldtrip";
         public const string PLUGIN_NAME = "Slugpup Safari";
-        public const string PLUGIN_VERSION = "1.7.3";
+        public const string PLUGIN_VERSION = "1.7.6";
 
         private OptionsMenu optionsMenuInstance;
         private bool initialized;
@@ -171,6 +170,8 @@ namespace FieldTrip
             On.PlayerGraphics.ctor += playerGraphicsCtorHook;
             On.Player.Grabability += playerGrababilityHook;
             On.Watcher.Barnacle.Update += barnacleUpdateHook;
+            On.PlayerGraphics.DrawSprites += playerGraphicsDrawSpriteHook;
+            On.Player.SlugOnBack.DropSlug += playerDropSlughook;
             
 
             try
@@ -193,7 +194,7 @@ namespace FieldTrip
                 IL.PlayerGraphics.ctor += playerGraphicsCtorILHook;
                 IL.Watcher.WarpPoint.Update += watcherWarpPointUpdateILHook;
                 IL.Player.SlugOnBack.ChangeOverlap += changeOverlapILHook;
-                IL.PlayerGraphics.InitiateSprites += playerInitSpritesILHook;
+                //IL.PlayerGraphics.InitiateSprites += playerInitSpritesILHook;
 
             }
             catch (Exception ex)
@@ -216,7 +217,45 @@ namespace FieldTrip
             }
         }
 
-        private void playerInitSpritesILHook(ILContext il)
+        private void playerDropSlughook(On.Player.SlugOnBack.orig_DropSlug orig, Player.SlugOnBack self)
+        {
+            if (self.slugcat.isCamo)
+                self.slugcat.ToggleCamo();
+            orig(self);          
+        }
+
+        private void playerGraphicsDrawSpriteHook(On.PlayerGraphics.orig_DrawSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
+        {
+            orig(self, sLeaser, rCam, timeStacker, camPos);
+            
+            for (int i = 0; i < sLeaser.sprites.Length; i++)
+            {
+                if ((i < 9 || i > 11)) //skip these sprites
+                {
+                    if (amIOnTheWatcher(self.player))
+                    {
+                        sLeaser.sprites[i].shader = Custom.rainWorld.Shaders["PlayerSimpleCamo"];
+                        self.useSimpleCamo = true;
+                    }
+                    else if (self.player.SlugCatClass != WatcherEnums.SlugcatStatsName.Watcher && self.useSimpleCamo)
+                    {
+                        //emulate watcher progress decay
+                        if (self.player.isCamo && self.player.camoProgress < 1f)
+                        {
+                            self.player.camoProgress += 0.01f;
+                        }
+                        else if (!self.player.isCamo && self.player.camoProgress > 0f)
+                        {
+                            self.player.camoProgress -= 0.01f;
+                        }
+                    }
+                    if (self.useSimpleCamo)
+                        sLeaser.sprites[i].alpha = 1f - self.player.camoProgress;
+                }
+            }
+        }
+
+        /*private void playerInitSpritesILHook(ILContext il)
         {
             try
             {
@@ -234,7 +273,7 @@ namespace FieldTrip
                 base.Logger.LogError("playerInitSpritesILHook encountered an error: " + e);
                 throw;
             }
-        }
+        }*/
 
         private void changeOverlapILHook(ILContext il)
         {
@@ -419,6 +458,7 @@ namespace FieldTrip
 
         private void playerGraphicsInitSpritesHook(On.PlayerGraphics.orig_InitiateSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
         {
+            //container for sluppies
             FContainer sluppyContainer = new FContainer();
             if (sLeaser.containers == null)
                 sLeaser.containers = new FContainer[0];
@@ -501,11 +541,13 @@ namespace FieldTrip
         private void playerUpdateHook(On.Player.orig_Update orig, Player self, bool eu)
         {
             //Debug.Log(self.ToString() + " camo?: " + self.isCamo);
+            float chargeVal = self.camoCharge;
             orig(self, eu);
             if(self.onBack != null)
             {
+                self.camoProgress = self.onBack.camoProgress;
                 self.isCamo = self.onBack.isCamo;
-                self.camoCharge = 5f;
+                self.camoCharge = chargeVal;
                 self.rippleDeathIntensity = 0;
                 self.rippleDeathTime = 0;
             }
@@ -783,7 +825,7 @@ namespace FieldTrip
                 throw;
             }
 
-            // /srs stuff
+            /*// /srs stuff
             try
             {
                 ILCursor c = new ILCursor(il);
@@ -805,7 +847,7 @@ namespace FieldTrip
             {
                 base.Logger.LogError("DrawSpritesIL encountered an error: " + e);
                 throw;
-            }
+            }*/
         }
 
         private List<AbstractPhysicalObject> grabSavedObjectsHook(On.SaveState.orig_GrabSavedObjects orig, SaveState self, AbstractCreature player, WorldCoordinate atPos)
@@ -1003,10 +1045,10 @@ namespace FieldTrip
             offset = moveFromHeart(room.world.GetAbstractRoom("MS_HEART").realizedRoom, offset);
             offset = moveFromHeart(room.world.GetAbstractRoom("MS_CORE").realizedRoom, offset);
 
-            SaveState save = room.game.GetStorySession.saveState;
+            //SaveState save = room.game.GetStorySession.saveState;
 
             //save pups
-            Debug.Log("SLUGPUP SAFARI: Saving den objects in den "+ room.game.FirstAlivePlayer.Room.name);
+            /*Debug.Log("SLUGPUP SAFARI: Saving den objects in den "+ room.game.FirstAlivePlayer.Room.name);
             SaveState.forcedEndRoomToAllowwSave = "MS_bitterstart";
             save.BringUpToDate(room.game);
             SaveState.forcedEndRoomToAllowwSave = "";
@@ -1019,7 +1061,7 @@ namespace FieldTrip
             Debug.Log("SLUGPUP SAFARI: Saved " + save.pendingFriendCreatures.Count + " friend(s)");
             Debug.Log("SLUGPUP SAFARI: Saved " + save.pendingObjects.Count + " items(s)");
             save.pendingFriendCreatures.Clear();
-            save.pendingObjects.Clear();
+            save.pendingObjects.Clear();*/
 
         }
         int moveFromHeart(Room room, int offset)
@@ -1028,9 +1070,9 @@ namespace FieldTrip
             for (int i = 0; i < room.abstractRoom.entities.Count; i++)
             {
                 AbstractPhysicalObject obj = room.abstractRoom.entities[i] as AbstractPhysicalObject;
-                obj.LoseAllStuckObjects();
                 if (obj.realizedObject is Player plr) //ensure all slugonback data is reset!
                     slugpupTumble(plr);
+                obj.LoseAllStuckObjects();
                 //skip player and energy cell
                 if (obj.realizedObject == null || obj.realizedObject is EnergyCell || obj is AbstractCreature)
                 {
@@ -1044,6 +1086,8 @@ namespace FieldTrip
                     Debug.Log("SLUGPUP SAFARI (entities): " + obj.realizedObject.ToString() + " failed to copy and is null");
                     continue;
                 }
+                else
+                    obj.Destroy();
                 objCopy.Abstractize(objCopy.pos);
                 objCopy.Move(new WorldCoordinate(room.world.GetAbstractRoom("MS_bitterstart").index, 35 + offset, 13, -1));
                 Debug.Log("SLUGPUP SAFARI: Moving Obj - " + objCopy.ToString() + ", New Coord is " + objCopy.pos.ToString());
@@ -1052,6 +1096,8 @@ namespace FieldTrip
             for (int i = 0; i < room.abstractRoom.creatures.Count; i++)
             {
                 AbstractCreature obj = room.abstractRoom.creatures[i];
+                if (obj.realizedObject is Player plr) //ensure all slugonback data is reset!
+                    slugpupTumble(plr);
                 obj.LoseAllStuckObjects();
                 //skip player and energy cell
                 if (obj.realizedObject == null || obj.creatureTemplate.type == CreatureTemplate.Type.Slugcat)
@@ -1066,6 +1112,8 @@ namespace FieldTrip
                     Debug.Log("SLUGPUP SAFARI (creatures): " + obj.realizedObject.ToString() + " failed to copy and is null");
                     continue;
                 }
+                else
+                    obj.Destroy();
                 objCopy.Abstractize(objCopy.pos);
                 objCopy.Move(new WorldCoordinate(room.world.GetAbstractRoom("MS_bitterstart").index, 35 + offset, 13, -1));
                 //force pup positions
@@ -1084,6 +1132,8 @@ namespace FieldTrip
             for (int i = 0; i < room.abstractRoom.entitiesInDens.Count; i++)
             {
                 AbstractCreature obj = room.abstractRoom.entitiesInDens[i] as AbstractCreature;
+                if (obj.realizedObject is Player plr) //ensure all slugonback data is reset!
+                    slugpupTumble(plr);
                 obj.LoseAllStuckObjects();
                 //skip player and energy cell
                 if (obj.realizedObject == null || obj.creatureTemplate.type == CreatureTemplate.Type.Slugcat)
@@ -1098,6 +1148,8 @@ namespace FieldTrip
                     Debug.Log("SLUGPUP SAFARI (entities in dens): " + obj.realizedObject.ToString() + " failed to copy and is null");
                     continue;
                 }
+                else
+                    obj.Destroy();
                 objCopy.Abstractize(objCopy.pos);
                 objCopy.Move(new WorldCoordinate(room.world.GetAbstractRoom("MS_bitterstart").index, 35 + offset, 13, -1));
                 //force pup positions
@@ -1553,12 +1605,16 @@ namespace FieldTrip
         private void slugToHandHook(On.Player.SlugOnBack.orig_SlugToHand orig, Player.SlugOnBack self, bool eu)
         {
             Player slugToHand = self.slugcat;
+/*            if (slugToHand != null &&amIOnTheWatcher(slugToHand) && slugToHand.isCamo && slugToHand.SlugCatClass != SlugcatStats.Name.Night)
+                return;*/
             orig(self, eu);
-            if(slugToHand != null && !self.HasASlug && slugToHand.slugOnBack != null && slugToHand.slugOnBack.HasASlug)
+            if (slugToHand != null && !self.HasASlug && slugToHand.slugOnBack != null && slugToHand.slugOnBack.HasASlug)
             {
                 self.SlugToBack(slugToHand.slugOnBack.slugcat);
                 slugToHand.slugOnBack.DropSlug();
             }
+            if (slugToHand.isCamo)
+                slugToHand.ToggleCamo();
         }
         private void SlugNPCUpdateHook_On(On.MoreSlugcats.SlugNPCAI.orig_Update orig, SlugNPCAI self)
         {

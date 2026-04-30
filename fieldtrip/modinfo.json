@@ -1,0 +1,11 @@
+{
+  "id": "yeliah.slugpupFieldtrip",
+  "name": "Slugpup Safari",
+  "version": "1.7.6",
+  "authors": "StormTheCat",
+  "description": "The Slugpup QoL and Bugfix Mod!",
+  "requirements": [ "moreslugcats", "rwremix" ],
+  "requirements_names": [ "More Slug Cats", "Rainworld Remix" ],
+  "tags": [ "Game Mechanics" ],
+  "checksum_override_version": false
+}
