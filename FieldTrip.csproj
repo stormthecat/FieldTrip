@@ -89,4 +89,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>copy /y "$(SolutionDir)bin\Debug\FieldTrip.dll" "$(SolutionDir)fieldtrip\newest\plugins\"</PostBuildEvent>
+  </PropertyGroup>
 </Project>
