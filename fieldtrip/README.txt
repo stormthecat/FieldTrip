@@ -45,3 +45,7 @@ If you find any bugs or incompatibilities please let me know in Bug Reports so I
 You can also @ me in the Rainworld Official Discord!
 
 Special thanks to tsunochizu on the Rainworld Discord server for pointing out some really sneaky bugs
+
+KNOWN ISSUES:
+- some items layer incorrectly when grabbed by slugpups
+- slugpups will sometimes refuse to grab dead barnacles (this seems to be a watcher dlc bug???)
