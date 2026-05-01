@@ -1695,7 +1695,12 @@ namespace FieldTrip
                         {
                             if (self.WantsToEatThis(realizedCreature) && (self.cat.grasps[0] == null || !self.WantsToEatThis(self.cat.grasps[0].grabbed)))
                             {
-                                if ((realizedCreature == null || realizedCreature.dead || self.creature.personality.sympathy <= 0.8f) && (self.cat.Grabability(realizedCreature) == Player.ObjectGrabability.OneHand && (OptionsMenu.allowGrabbingNoodleflies.Value || !(realizedCreature is SmallNeedleWorm)) && (OptionsMenu.allowGrabbingCentipedes.Value || !(self.preyTracker.MostAttractivePrey.representedCreature.realizedCreature is Centipede)) && (OptionsMenu.allowGrabbingTardigrades.Value || !(self.preyTracker.MostAttractivePrey.representedCreature.realizedCreature is Tardigrade))) || (realizedCreature is Barnacle && !(realizedCreature as Barnacle).hasShell))
+                                if ((realizedCreature == null || realizedCreature.dead || self.creature.personality.sympathy <= 0.8f) 
+                                    && ((self.cat.Grabability(realizedCreature) == Player.ObjectGrabability.OneHand && 
+                                    (OptionsMenu.allowGrabbingNoodleflies.Value || !(realizedCreature is SmallNeedleWorm)) && 
+                                    (OptionsMenu.allowGrabbingCentipedes.Value || !(self.preyTracker.MostAttractivePrey.representedCreature.realizedCreature is Centipede)) && 
+                                    (OptionsMenu.allowGrabbingTardigrades.Value || !(self.preyTracker.MostAttractivePrey.representedCreature.realizedCreature is Tardigrade))) || 
+                                    (realizedCreature is Barnacle && !(realizedCreature as Barnacle).hasShell)))
                                 {
                                     self.cat.NPCForceGrab(realizedCreature);
                                     break;

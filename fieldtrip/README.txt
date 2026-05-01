@@ -5,6 +5,7 @@ IMPORTANT NOTICE
 Are you struggling to travel with more than one slugpup? Do you find yourself unable to defend yourself with only one hand? Then this mod is for you! This mod will allow you to stack as many slugpups on your back as your computer can handle! (We are not responsible for any back injuries caused by carrying more than one pup)
 
 Incompatabilities:
+- Pups: The Scavenger Slayer (causes pups to jump off stack to attack scavs)
 - Cosmospectre (cosmo causes the piggybacking mechanic to break)
 - Warp Menu (piggybacking during a warp sometimes causes a softlock)
 - Pup Karma (certain events such as the bitter aerie sequence can break pup karma, I plan on fixing this as soon as I have time) Most gameplay should be unaffected!
