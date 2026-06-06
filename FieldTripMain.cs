@@ -219,7 +219,7 @@ namespace FieldTrip
 
         private void playerDropSlughook(On.Player.SlugOnBack.orig_DropSlug orig, Player.SlugOnBack self)
         {
-            if (self.slugcat.isCamo)
+            if (self?.slugcat != null && self.slugcat.isCamo)
                 self.slugcat.ToggleCamo();
             orig(self);          
         }
