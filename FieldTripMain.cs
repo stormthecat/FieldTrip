@@ -146,6 +146,7 @@ namespace FieldTrip
             On.MoreSlugcats.MSCRoomSpecificScript.MS_bitterstart.Update += bitterHook;
             On.MoreSlugcats.MSCRoomSpecificScript.MS_CORESTARTUPHEART.Update += coreStartHook;
             On.MoreSlugcats.MSCRoomSpecificScript.MS_HEARTWARP.Update += heartWarp;
+            On.MoreSlugcats.MSCRoomSpecificScript.OE_CAVE03_warp.Update += OE_CAVE03_warpUpdate;
             On.RainWorldGame.ExitToVoidSeaSlideShow += voidEndHook;
             //On.SaveState.SpawnSavedObjectsAndCreatures += spawnSavedStuffHook;
             On.SaveState.GrabSavedCreatures += grabSavedCreaturesHook;
@@ -172,6 +173,7 @@ namespace FieldTrip
             On.Watcher.Barnacle.Update += barnacleUpdateHook;
             On.PlayerGraphics.DrawSprites += playerGraphicsDrawSpriteHook;
             On.Player.SlugOnBack.DropSlug += playerDropSlughook;
+
             
 
             try
@@ -215,6 +217,22 @@ namespace FieldTrip
                 Debug.Log(string.Format("Slugpup Safari: OnModsInit IDetour failed init error", ex));
                 base.Logger.LogError(ex);
             }
+        }
+
+        private void OE_CAVE03_warpUpdate(On.MoreSlugcats.MSCRoomSpecificScript.OE_CAVE03_warp.orig_Update orig, MSCRoomSpecificScript.OE_CAVE03_warp self, bool eu)
+        {
+            // Remove pups before warp, otherwise suffer catastrophic consequences (game no worky)
+            if (self.fadeOut != null && self.fadeOut.IsDoneFading() && !self.triggered) // only do it once or game explode (lag)
+            {
+                for (int l = 0; l < self.room.game.Players.Count; l++)
+                {
+                    if (self.room.game.Players[l].realizedCreature != null)
+                    {
+                        slugpupTumble(self.room.game.Players[l].realizedCreature as Player);
+                    }
+                }
+            }
+                orig(self, eu);
         }
 
         private void playerDropSlughook(On.Player.SlugOnBack.orig_DropSlug orig, Player.SlugOnBack self)
