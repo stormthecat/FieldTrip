@@ -28,7 +28,7 @@ Toggleable Features:
 - grant piggybacked slugpups immunity to impact damage (necessary if you have a large amount of sluppies due to physics engine shenanigans)
 - grant piggybacked slugpups immunity to the out of bounds killzone (also recommended for a ludicrous amount of sluppies
 - prevent stunned scugs from dropping/falling off other slugcats
-- allow piggybacked slugpups to grab and eat food
+- allow piggybacked slugpups to grab and eat food (eating while piggybacked will give them rep as if they were thrown food)
 - toggle whether pups are allowed to grab certain foods while piggybacked
 - forbid certain foods from being grabbed by piggybacked slugpups
 - forbid coalescipedes, and leeches from targeting piggybacked slugpups
