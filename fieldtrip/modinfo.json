@@ -1,7 +1,7 @@
 {
   "id": "yeliah.slugpupFieldtrip",
   "name": "Slugpup Safari",
-  "version": "1.7.6",
+  "version": "1.7.7",
   "authors": "StormTheCat",
   "description": "The Slugpup QoL and Bugfix Mod!",
   "requirements": [ "moreslugcats", "rwremix" ],

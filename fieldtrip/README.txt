@@ -1,6 +1,5 @@
 IMPORTANT NOTICE
 - The watcher campaign is not designed with slugpups in mind. If you play the watcher with pups expect bugs! I recommend using Visible ID or mousedrag and writing your pup's id in case it needs to be respawned (you can do this with the dev console mod by typing "spawn SlugNPC ID.-1.xxxx" and replacing the x's with the correct id). Additionally, slugpups may spawn in the walls of shelters, this is something out of my power to fix.
-- The watcher is still in development, so I will ignore some small graphical bugs as they are a lot of work to fix and are subject to change
 
 Are you struggling to travel with more than one slugpup? Do you find yourself unable to defend yourself with only one hand? Then this mod is for you! This mod will allow you to stack as many slugpups on your back as your computer can handle! (We are not responsible for any back injuries caused by carrying more than one pup)
 
@@ -19,7 +18,7 @@ Downpour fixes:
 - Prevents slugpups and tamed lizards from despawning during certain endings
 - Pups can no longer grab items from you while eating
 - Prevents the endings of downpour cats (except saint) from deleting pups (Will likely not work in modded endings... please tell me if you find modded endings that eat pups!) [OBSOLETE]
-- Fixes a bug in Rivulet's campaign that deletes slugpups when
+- Fixes a bug in Rivulet's campaign that deletes slugpups near the end of the campaign (this fix is a bit wonky and may not always be reliable)
 - Fixes a bug where slugNPC's interfere with jolly coop auto colors
 
 Toggleable Features:

@@ -104,7 +104,7 @@ namespace FieldTrip
     {
         public const string PLUGIN_GUID = "yeliah.slugpupFieldtrip";
         public const string PLUGIN_NAME = "Slugpup Safari";
-        public const string PLUGIN_VERSION = "1.7.6";
+        public const string PLUGIN_VERSION = "1.7.7";
 
         private OptionsMenu optionsMenuInstance;
         private bool initialized;
@@ -401,6 +401,32 @@ namespace FieldTrip
                 }
             }
             return orig(self, obj);
+        }
+
+        public void ReceiveSnack(Player player)
+        {
+            
+            if(player?.AI == null || player.onBack == null) // early return if conditions not met
+            {
+                return;
+            }
+
+            Player lowerScug = player.onBack;
+            Player baseScug = null;
+            while(lowerScug != null) // get bottommost scug
+            {
+                baseScug = lowerScug;
+                lowerScug = lowerScug.onBack;
+            }
+            
+            // do social memory stuff
+            SocialMemory.Relationship orInitiateRelationship = player.State.socialMemory.GetOrInitiateRelationship(baseScug.abstractCreature.ID);
+            orInitiateRelationship.InfluenceLike(1f);
+            orInitiateRelationship.InfluenceTempLike(1f);
+            Custom.Log(new string[]
+            {
+                orInitiateRelationship.ToString()
+            });
         }
 
         private void playerGraphicsCtorHook(On.PlayerGraphics.orig_ctor orig, PlayerGraphics self, PhysicalObject ow)
@@ -1699,6 +1725,7 @@ namespace FieldTrip
                             {
                                 //Debug.Log("Slugpup_Safari: " + self.cat.ToString() + " grabbing " + realizedObject.ToString());
                                 self.cat.NPCForceGrab(realizedObject);
+                                ReceiveSnack(self.cat);
                                 break;
                             }
                         }
