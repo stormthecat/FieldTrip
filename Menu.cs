@@ -15,6 +15,46 @@ namespace FieldTrip
 {
     public class OptionsMenu : OptionInterface
     {
+        #region Constants
+        //horizontal
+        const float CHECKBOX_HORIZONTAL = 60f;
+        const float HORIZONTAL_INDENT = 30f;
+        const float SUB_CHECKBOX_HORIZONTAL = CHECKBOX_HORIZONTAL + 30f;
+        const float SUB_SUB_CHECKBOX_HORIZONTAL = SUB_CHECKBOX_HORIZONTAL + 50f;
+        const float CHECKBOX_LABEL_HORIZONTAL = CHECKBOX_HORIZONTAL + 35f;
+        const float SUB_CHECKBOX_LABEL_HORIZONTAL = SUB_CHECKBOX_HORIZONTAL + 35f;
+        const float SUB_SUB_CHECKBOX_LABEL_HORIZONTAL = SUB_SUB_CHECKBOX_HORIZONTAL + 35f;
+        const float KEYBIND_HORIZONTAL_OFFSET = 200f;
+        const float NUM_INPUT_OFFSET = 60f;
+        //horizontal (scroll box)
+        const float SCROLL_HORIZONTAL_MODIFIER = -35f;
+
+        //vertical
+        const float CHECKBOX_VERT_OFFSET = 70f;
+        const float MINI_CHECKBOX_VERT_OFFSET = 50f;
+        const float LABEL_VERT_OFFSET = 30f;
+        const float SUB_CHECKBOX_VERT_OFFSET = CHECKBOX_VERT_OFFSET - 10;
+        const float SUB_SUB_CHECKBOX_VERT_OFFSET = CHECKBOX_VERT_OFFSET - 15;
+        const float KEYBIND_VERT_OFFSET = -40f;
+        const float SCROLL_BOTTOM_PADDING = 60f;
+
+        const float KEYBIND_HEIGHT = (KEYBIND_VERT_OFFSET * (-1)) - 20f;
+        const float KEYBIND_LENGTH = KEYBIND_HORIZONTAL_OFFSET - 50f;
+        const float IMAGE_TEXT_OFFSET = 30f;
+        const float CHECKBOX_IMAGE_OFFSET = -23f;
+        const float DESC_OFFSET = -20f;
+        const float VERT_POS_INIT = 550f;
+        const float SCROLL_POS_INIT = 505f;
+        const float TITLE_HORIZONTAL = 40f;
+
+
+        const float NUM_INPUT_SIZE = 50f;
+        const float SCROLL_CONTENT_SIZE = 0f;
+
+        Vector2 SCROLL_POS = new(10f, 10f);
+        Vector2 SCROLL_SIZE = new(580f, 500f);
+        #endregion
+
         public class SlupfariOption<T>
         {
             Configurable<T> config;
@@ -22,17 +62,59 @@ namespace FieldTrip
             string key;
             string title;
             string desc;
-            public SlupfariOption(ref Configurable<T> config, string key, T defaultVal, ConfigHolder configHolder)
+            bool disableChildren;
+            bool greyedOut;
+
+            float vertOffset;
+            float horiOffset;
+            SlupfariOption<T> parent;
+
+            UIelement[] elements;
+
+            public SlupfariOption(ref Configurable<T> config, string key, T defaultVal, ConfigHolder configHolder, SlupfariOption<T> parent=null)
             {
                 this.type = typeof(T);
                 this.key = key;
                 config = configHolder.Bind<T>(key, defaultVal);
                 this.config = config;
+                this.parent = parent;
+                
+                this.vertOffset = SCROLL_POS_INIT;
+                this.horiOffset = (parent != null) ? parent.horiOffset + HORIZONTAL_INDENT : 0;
+
+
             }
-            void AddText(string title, string desc)
+            public void AddText(string title, string desc)
             {
                 this.title = title;
                 this.desc = desc;
+            }
+            public UIelement[] MakeElement(ref float vert_pos)
+            {
+                this.vertOffset = vert_pos;
+                if (type == typeof(bool))
+                {
+                    Configurable<bool> option = config as Configurable<bool>;
+                    elements = new UIelement[]
+                    {
+                        new OpCheckBox(option, CHECKBOX_HORIZONTAL, vert_pos -= CHECKBOX_VERT_OFFSET),
+                        new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos, this.title, true),
+                        new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos + DESC_OFFSET, this.desc, false),
+                    };
+                }
+                return elements;
+            }
+
+            public void Update(bool disableChildren = false)
+            {
+                if (this.parent != null) this.greyedOut = this.parent.disableChildren;
+                this.disableChildren = disableChildren;
+                foreach(UIelement element in elements)
+                {
+                    UIconfig uiConfig = element as UIconfig;
+                    if(uiConfig != null) uiConfig.greyedOut = this.greyedOut;
+
+                }
             }
 
 
@@ -117,42 +199,8 @@ namespace FieldTrip
         }
         public override void Initialize()
         {
-            //horizontal
-            float CHECKBOX_HORIZONTAL = 60f;
-            float SUB_CHECKBOX_HORIZONTAL = CHECKBOX_HORIZONTAL + 30f;
-            float SUB_SUB_CHECKBOX_HORIZONTAL = SUB_CHECKBOX_HORIZONTAL + 50f;
-            float CHECKBOX_LABEL_HORIZONTAL = CHECKBOX_HORIZONTAL + 35f;
-            float SUB_CHECKBOX_LABEL_HORIZONTAL = SUB_CHECKBOX_HORIZONTAL + 35f;
-            float SUB_SUB_CHECKBOX_LABEL_HORIZONTAL = SUB_SUB_CHECKBOX_HORIZONTAL + 35f;
-            float KEYBIND_HORIZONTAL_OFFSET = 200f;
-            float NUM_INPUT_OFFSET = 60f;
-            //horizontal (scroll box)
-            float SCROLL_HORIZONTAL_MODIFIER = -35f;
-            
-            //vertical
-            float CHECKBOX_VERT_OFFSET = 70f;
-            float MINI_CHECKBOX_VERT_OFFSET = 50f;
-            float LABEL_VERT_OFFSET = 30f;
-            float SUB_CHECKBOX_VERT_OFFSET= CHECKBOX_VERT_OFFSET - 10;
-            float SUB_SUB_CHECKBOX_VERT_OFFSET = CHECKBOX_VERT_OFFSET - 15;
-            float KEYBIND_VERT_OFFSET = -40f;
-            float SCROLL_BOTTOM_PADDING = 60f;
-
-            float KEYBIND_HEIGHT = (KEYBIND_VERT_OFFSET * (-1)) - 20f;
-            float KEYBIND_LENGTH = KEYBIND_HORIZONTAL_OFFSET - 50f;
-            float IMAGE_TEXT_OFFSET = 30f;
-            float CHECKBOX_IMAGE_OFFSET = -23f;
-            float DESC_OFFSET = -20f;
-            float VERT_POS_INIT = 550f;
-            float SCROLL_POS_INIT = 505f;
-            float TITLE_HORIZONTAL = 40f;
-
             float vert_pos = VERT_POS_INIT;
 
-            float NUM_INPUT_SIZE = 50f;
-            float SCROLL_CONTENT_SIZE = 0f;
-            Vector2 SCROLL_POS = new(10f, 10f);
-            Vector2 SCROLL_SIZE = new(580f, 500f);
 
             base.Initialize();
             OpTab opTab = new OpTab(this, "Main Config");
@@ -166,8 +214,33 @@ namespace FieldTrip
             {
                 opTab, opTab6, opTab2, opTab3, opTab4, opTab5
             };
-            
-            
+
+            keepItemEnabledOption.AddText(
+                "Keep Items on Pickup",
+                "(Allow slugpups to keep holding their item when picked up by the player)"
+                );
+            artificerDontLaunchKidsOption.AddText(
+                "Artificer Parry Protection",
+                "(Prevent piggybacked slugpups from being launched by artificer's parry)"
+                );
+            noThrowPupsOption.AddText(
+                "Pup Throw Protection",
+                "(Piggybacked slugpups must be moved to your hand in order to throw them)"
+                );
+            pupImpactCushionOption.AddText(
+                "Pup Impact Immunity",
+                "(Piggybacked slugpups are immune to fall damage)"
+                );
+            allowGrabbingFoodOption.AddText(
+                "Allow Grabbing Food",
+                "(Allow slugpups to grab food while piggybacked)"
+                );
+
+
+            bigHeadModeOption.AddText(
+                "Big Brain Mode",
+                "(Doubles the size of your slugpup's head for maximum brainage)"
+                );
 
             OpContainer tab1Container = new OpContainer(new Vector2(0, 0));
             opTab.AddItems(tab1Container);
@@ -215,7 +288,7 @@ namespace FieldTrip
             {
                 new OpLabel(TITLE_HORIZONTAL, vert_pos, "Slugpup Grab Options", true),
 
-                new OpCheckBox(keepItemEnabled, CHECKBOX_HORIZONTAL, vert_pos -= CHECKBOX_VERT_OFFSET),
+                /*new OpCheckBox(keepItemEnabled, CHECKBOX_HORIZONTAL, vert_pos -= CHECKBOX_VERT_OFFSET),
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Keep Items on Pickup", true),
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos+DESC_OFFSET, "(Allow slugpups to keep holding their item when picked up by the player)", false),
                 // Keep items options
@@ -247,9 +320,11 @@ namespace FieldTrip
                 // Back to other options
                 new OpCheckBox(canDropForFood, SUB_CHECKBOX_HORIZONTAL, vert_pos -= CHECKBOX_VERT_OFFSET),
                 new OpLabel(SUB_CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Allow Dropping Items", true),
-                new OpLabel(SUB_CHECKBOX_LABEL_HORIZONTAL, vert_pos + DESC_OFFSET, "(Slugpups will drop items in their hands to pick up food)", false),
+                new OpLabel(SUB_CHECKBOX_LABEL_HORIZONTAL, vert_pos + DESC_OFFSET, "(Slugpups will drop items in their hands to pick up food)", false),*/
             };
             opTab2.AddItems(element2);
+            opTab2.AddItems(keepItemEnabledOption.MakeElement(ref vert_pos));
+            opTab2.AddItems(allowGrabbingFoodOption.MakeElement(ref vert_pos));
 
             vert_pos = VERT_POS_INIT;
             UIelement[] element3 = new UIelement[]
@@ -303,11 +378,12 @@ namespace FieldTrip
             UIelement[] element5 = new UIelement[]
             {
                 new OpLabel(TITLE_HORIZONTAL, vert_pos, "Silliness", true),
-                new OpCheckBox(bigHeadMode, CHECKBOX_HORIZONTAL, vert_pos -= CHECKBOX_VERT_OFFSET),
+/*                new OpCheckBox(bigHeadMode, CHECKBOX_HORIZONTAL, vert_pos -= CHECKBOX_VERT_OFFSET),
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Big Brain Mode", true),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos+DESC_OFFSET, "(Doubles the size of your slugpup's head for maximum brainage)", false),
+                new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos+DESC_OFFSET, "(Doubles the size of your slugpup's head for maximum brainage)", false),*/
             };
             opTab5.AddItems(element5);
+            opTab5.AddItems(bigHeadModeOption.MakeElement(ref vert_pos));
             vert_pos = VERT_POS_INIT;
             UIelement[] element6 = new UIelement[]
             {
