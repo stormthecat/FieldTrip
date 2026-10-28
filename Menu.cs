@@ -67,11 +67,11 @@ namespace FieldTrip
 
             float vertOffset;
             float horiOffset;
-            SlupfariOption<T> parent;
+            SlupfariOption<bool> parent;
 
             UIelement[] elements;
 
-            public SlupfariOption(ref Configurable<T> config, string key, T defaultVal, ConfigHolder configHolder, SlupfariOption<T> parent=null)
+            public SlupfariOption(ref Configurable<T> config, string key, T defaultVal, ConfigHolder configHolder, SlupfariOption<bool> parent=null)
             {
                 this.type = typeof(T);
                 this.key = key;
@@ -91,15 +91,30 @@ namespace FieldTrip
             }
             public UIelement[] MakeElement(ref float vert_pos)
             {
+                if (this.title is null) this.title = "";
+                if (this.desc is null) this.desc = "";
+
                 this.vertOffset = vert_pos;
                 if (type == typeof(bool))
                 {
                     Configurable<bool> option = config as Configurable<bool>;
                     elements = new UIelement[]
                     {
-                        new OpCheckBox(option, CHECKBOX_HORIZONTAL, vert_pos -= CHECKBOX_VERT_OFFSET),
-                        new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos, this.title, true),
-                        new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos + DESC_OFFSET, this.desc, false),
+                        new OpCheckBox(option, CHECKBOX_HORIZONTAL + horiOffset, vert_pos -= CHECKBOX_VERT_OFFSET),
+                        new OpLabel(CHECKBOX_LABEL_HORIZONTAL + horiOffset, vert_pos, this.title, true),
+                        new OpLabel(CHECKBOX_LABEL_HORIZONTAL + horiOffset, vert_pos + DESC_OFFSET, this.desc, false),
+                    };
+                }
+                else if (type == typeof(int))
+                {
+                    Configurable<int> option = config as Configurable<int>;
+                    elements = new UIelement[]
+                    {
+                        // TODO: Standardize the offsets for children and text boxes
+                        // rn we need an offset for text boxes, both vertical and horizontal
+                        new OpTextBox(option, new Vector2(CHECKBOX_HORIZONTAL + horiOffset, vert_pos -= MINI_CHECKBOX_VERT_OFFSET), NUM_INPUT_SIZE),
+                        new OpLabel(NUM_INPUT_SIZE + horiOffset, vert_pos, this.title, true),
+                        new OpLabel(NUM_INPUT_SIZE + horiOffset, vert_pos + DESC_OFFSET, this.desc, false),
                     };
                 }
                 return elements;
@@ -195,7 +210,7 @@ namespace FieldTrip
             artiBombProtectionOption = new SlupfariOption<bool>(ref artiBombProtection, "slugpupsafari_artiBombProtection_checkbox", true, this.config);
             bigHeadModeOption = new SlupfariOption<bool>(ref bigHeadMode, "slugpupsafari_bigHeadMode_checkbox", false, this.config);
             stunProtectionOption = new SlupfariOption<bool>(ref stunProtection, "slugpupsafari_stunProtection_checkbox", true, this.config);
-            maxStackOption = new SlupfariOption<int>(ref maxStack, "slugpupsafari_maxStack_textBox", 1, this.config);
+            maxStackOption = new SlupfariOption<int>(ref maxStack, "slugpupsafari_maxStack_textBox", 1, this.config, infinitePupStackOption);
             mirosBirdProtectionOption = new SlupfariOption<bool>(ref mirosBirdProtection, "slugpupsafari_mirosBirdProtection_checkbox", true, this.config);
             killzoneProtectionOption = new SlupfariOption<bool>(ref killzoneProtection, "slugpupsafari_killzone_checkbox", true, this.config);
         }
@@ -286,8 +301,8 @@ namespace FieldTrip
                 "Allow Dropping Items",
                 "(Slugpups will drop items in their hands to pick up food)"
                 );
-            maxPupSliderOption.AddText(
-                ""
+            maxStackOption.AddText(
+                "Maximum Stack Limit"
                 );
             infinitePupStackOption.AddText(
                 "Infinite Stacking"
@@ -341,53 +356,32 @@ namespace FieldTrip
                 ..preventDraggingVinesOption.MakeElement(ref vert_pos),
                 ..stunProtectionOption.MakeElement(ref vert_pos),
                 ..killzoneProtectionOption.MakeElement(ref vert_pos),
-                ..infinitePupStackOption.MakeElement(ref vert_pos)
+                ..infinitePupStackOption.MakeElement(ref vert_pos),
+                ..maxStackOption.MakeElement(ref vert_pos)
                 ]);
-            //mainConfigScroll.AddItems(maxStackOption.MakeElement(ref vert_pos));
             mainConfigScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
             vert_pos = VERT_POS_INIT;
 
-            UIelement[] element2 = new UIelement[]
+            
+            keepItemTab.AddItems(new UIelement[]
             {
                 new OpLabel(TITLE_HORIZONTAL, vert_pos, "Slugpup Grab Options", true),
-
-                /*new OpCheckBox(keepItemEnabled, CHECKBOX_HORIZONTAL, vert_pos -= CHECKBOX_VERT_OFFSET),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Keep Items on Pickup", true),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos+DESC_OFFSET, "(Allow slugpups to keep holding their item when picked up by the player)", false),
-                // Keep items options
-
-                new OpCheckBox(allowGrabbingFood, SUB_CHECKBOX_HORIZONTAL, vert_pos -= SUB_CHECKBOX_VERT_OFFSET),
-                new OpLabel(SUB_CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Allow Grabbing Food", true),
-                new OpLabel(SUB_CHECKBOX_LABEL_HORIZONTAL, vert_pos+DESC_OFFSET, "(Allow slugpups to grab food while piggybacked)", false),
-
-                // Grab food options
-                new OpCheckBox(allowGrabbingNoodleflies, SUB_SUB_CHECKBOX_HORIZONTAL, vert_pos -= SUB_SUB_CHECKBOX_VERT_OFFSET),
-                new OpImage(new Vector2(SUB_SUB_CHECKBOX_HORIZONTAL+CHECKBOX_IMAGE_OFFSET, vert_pos), "Kill_SmallNeedleWorm"),
-                new OpLabel(SUB_SUB_CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Allow Grabbing Noodleflies", true),
-                new OpCheckBox(allowGrabbingCentipedes, SUB_SUB_CHECKBOX_HORIZONTAL, vert_pos -= SUB_SUB_CHECKBOX_VERT_OFFSET),
-                new OpImage(new Vector2(SUB_SUB_CHECKBOX_HORIZONTAL+CHECKBOX_IMAGE_OFFSET-5f, vert_pos), "Kill_Centipede1"),
-                new OpLabel(SUB_SUB_CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Allow Grabbing Centipedes", true),
-                new OpLabel(SUB_SUB_CHECKBOX_LABEL_HORIZONTAL, vert_pos + DESC_OFFSET, "(Slugpups cannot eat when you are moving, so be careful)", false),
-                new OpCheckBox(allowGrabbingTardigrades, SUB_SUB_CHECKBOX_HORIZONTAL, vert_pos -= SUB_SUB_CHECKBOX_VERT_OFFSET),
-                new OpLabel(SUB_SUB_CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Allow Grabbing Tardigrades", true),
-                new OpLabel(SUB_SUB_CHECKBOX_LABEL_HORIZONTAL, vert_pos + DESC_OFFSET, "(Only Applicable if Watcher is Enabled)", false),
-                new OpCheckBox(allowGrabbing5PNeurons, SUB_SUB_CHECKBOX_HORIZONTAL, vert_pos -= SUB_SUB_CHECKBOX_VERT_OFFSET),
-                new OpImage(new Vector2(SUB_SUB_CHECKBOX_HORIZONTAL+CHECKBOX_IMAGE_OFFSET, vert_pos), "Symbol_Neuron"),
-                new OpLabel(SUB_SUB_CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Allow Grabbing Five Pebble's Neurons", true),
-                new OpLabel(SUB_SUB_CHECKBOX_LABEL_HORIZONTAL, vert_pos + DESC_OFFSET, "(Neurons outside of Five Pebbles are always forbidden)", false),
-                new OpCheckBox(allowGrabbingShrooms, SUB_SUB_CHECKBOX_HORIZONTAL, vert_pos -= SUB_SUB_CHECKBOX_VERT_OFFSET),
-                new OpImage(new Vector2(SUB_SUB_CHECKBOX_HORIZONTAL+CHECKBOX_IMAGE_OFFSET, vert_pos), "Symbol_Mushroom"),
-                new OpLabel(SUB_SUB_CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Allow Grabbing Mushrooms", true),
-                new OpCheckBox(allowGrabbingKarmaFlowers, SUB_SUB_CHECKBOX_HORIZONTAL, vert_pos -= SUB_SUB_CHECKBOX_VERT_OFFSET),
-                new OpLabel(SUB_SUB_CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Allow Grabbing Karma Flowers", true),
-                // Back to other options
-                new OpCheckBox(canDropForFood, SUB_CHECKBOX_HORIZONTAL, vert_pos -= CHECKBOX_VERT_OFFSET),
-                new OpLabel(SUB_CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Allow Dropping Items", true),
-                new OpLabel(SUB_CHECKBOX_LABEL_HORIZONTAL, vert_pos + DESC_OFFSET, "(Slugpups will drop items in their hands to pick up food)", false),*/
-            };
-            keepItemTab.AddItems(element2);
-            keepItemTab.AddItems(keepItemEnabledOption.MakeElement(ref vert_pos));
-            keepItemTab.AddItems(allowGrabbingFoodOption.MakeElement(ref vert_pos));
+                keepItemScroll
+            });
+            vert_pos = SCROLL_POS_INIT;
+            keepItemScroll.AddItems([
+                ..keepItemEnabledOption.MakeElement(ref vert_pos),
+                ..allowGrabbingFoodOption.MakeElement(ref vert_pos),
+                ..allowGrabbingNoodlefliesOption.MakeElement(ref vert_pos),
+                ..allowGrabbingCentipedesOption.MakeElement(ref vert_pos),
+                ..allowGrabbingTardigradesOption.MakeElement(ref vert_pos),
+                ..allowGrabbing5PNeuronsOption.MakeElement(ref vert_pos),
+                ..allowGrabbingShroomsOption.MakeElement(ref vert_pos),
+                ..allowGrabbingKarmaFlowersOption.MakeElement(ref vert_pos),
+                ..canDropForFoodOption.MakeElement(ref vert_pos)
+                ]);
+            keepItemScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
+            vert_pos = VERT_POS_INIT;
 
             vert_pos = VERT_POS_INIT;
             UIelement[] element3 = new UIelement[]
