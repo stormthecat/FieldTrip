@@ -17,7 +17,7 @@ namespace FieldTrip
     {
         #region Constants
         //horizontal
-        const float CHECKBOX_HORIZONTAL = 60f;
+        const float CHECKBOX_HORIZONTAL = 30f;
         const float HORIZONTAL_INDENT = 30f;
         const float SUB_CHECKBOX_HORIZONTAL = CHECKBOX_HORIZONTAL + 30f;
         const float SUB_SUB_CHECKBOX_HORIZONTAL = SUB_CHECKBOX_HORIZONTAL + 50f;
@@ -84,7 +84,7 @@ namespace FieldTrip
 
 
             }
-            public void AddText(string title, string desc)
+            public void AddText(string title, string desc = "")
             {
                 this.title = title;
                 this.desc = desc;
@@ -117,8 +117,9 @@ namespace FieldTrip
                 }
             }
 
-
         }
+
+        #region OptionDeclarations
 
         SlupfariOption<bool> keepItemEnabledOption;
         SlupfariOption<bool> artificerDontLaunchKidsOption;
@@ -157,24 +158,25 @@ namespace FieldTrip
         SlupfariOption<int> maxStackOption;
         SlupfariOption<bool> mirosBirdProtectionOption;
         SlupfariOption<bool> killzoneProtectionOption;
+        #endregion
         public OptionsMenu(FieldTripMain plugin)
         {
             keepItemEnabledOption = new SlupfariOption<bool>(ref keepItemEnabled, "slugpupsafari_keepItemOnPickup_checkbox", true, this.config);
             artificerDontLaunchKidsOption = new SlupfariOption<bool>(ref artificerDontLaunchKids, "slugpupsafari_artificerdontlaunchkids_checkbox", true, this.config);
             noThrowPupsOption = new SlupfariOption<bool>(ref noThrowPups, "slugpupsafari_noThrowPups_checkbox", true, this.config);
             pupImpactCushionOption = new SlupfariOption<bool>(ref pupImpactCushion, "slugpupsafari_pupimpactcushion_checkbox", true, this.config);
-            allowGrabbingFoodOption = new SlupfariOption<bool>(ref allowGrabbingFood, "slugpupsafari_allowgrabbingfood_checkbox", true, this.config);
-            allowGrabbingNoodlefliesOption = new SlupfariOption<bool>(ref allowGrabbingNoodleflies, "slugpupsafari_allowgrabbingnoodleflies_checkbox", false, this.config);
-            allowGrabbingCentipedesOption = new SlupfariOption<bool>(ref allowGrabbingCentipedes, "slugpupsafari_allowgrabbingcentipedes_checkbox", true, this.config);
-            allowGrabbing5PNeuronsOption = new SlupfariOption<bool>(ref allowGrabbing5PNeurons, "slugpupsafari_allowgrabbing5Pneurons_checkbox", true, this.config);
-            allowGrabbingShroomsOption = new SlupfariOption<bool>(ref allowGrabbingShrooms, "slugpupsafari_allowgrabbingShrooms_checkbox", false, this.config);
-            allowGrabbingKarmaFlowersOption = new SlupfariOption<bool>(ref allowGrabbingKarmaFlowers, "slugpupsafari_allowgrabbingKarmaFlowers_checkbox", true, this.config);
-            allowGrabbingTardigradesOption = new SlupfariOption<bool>(ref allowGrabbingTardigrades, "slugpupsafari_allowgrabbingTardigrades_checkbox", false, this.config);
+            allowGrabbingFoodOption = new SlupfariOption<bool>(ref allowGrabbingFood, "slugpupsafari_allowgrabbingfood_checkbox", true, this.config, keepItemEnabledOption);
+            allowGrabbingNoodlefliesOption = new SlupfariOption<bool>(ref allowGrabbingNoodleflies, "slugpupsafari_allowgrabbingnoodleflies_checkbox", false, this.config, allowGrabbingFoodOption);
+            allowGrabbingCentipedesOption = new SlupfariOption<bool>(ref allowGrabbingCentipedes, "slugpupsafari_allowgrabbingcentipedes_checkbox", true, this.config, allowGrabbingFoodOption);
+            allowGrabbing5PNeuronsOption = new SlupfariOption<bool>(ref allowGrabbing5PNeurons, "slugpupsafari_allowgrabbing5Pneurons_checkbox", true, this.config, allowGrabbingFoodOption);
+            allowGrabbingShroomsOption = new SlupfariOption<bool>(ref allowGrabbingShrooms, "slugpupsafari_allowgrabbingShrooms_checkbox", false, this.config, allowGrabbingFoodOption);
+            allowGrabbingKarmaFlowersOption = new SlupfariOption<bool>(ref allowGrabbingKarmaFlowers, "slugpupsafari_allowgrabbingKarmaFlowers_checkbox", true, this.config, allowGrabbingFoodOption);
+            allowGrabbingTardigradesOption = new SlupfariOption<bool>(ref allowGrabbingTardigrades, "slugpupsafari_allowgrabbingTardigrades_checkbox", false, this.config, allowGrabbingFoodOption);
             preventDraggingVinesOption = new SlupfariOption<bool>(ref preventDraggingVines, "slugpupsafari_preventDraggingVines_checkbox", false, this.config);
             allowBackspearOption = new SlupfariOption<bool>(ref allowBackspear, "slugpupsafari_allowBackspear_checkbox", true, this.config);
             leechProtectionOption = new SlupfariOption<bool>(ref leechProtection, "slugpupsafari_leechProtection_checkbox", false, this.config);
             coalescipedeProtectionOption = new SlupfariOption<bool>(ref coalescipedeProtection, "slugpupsafari_coalescipedeProtection_checkbox", true, this.config);
-            canDropForFoodOption = new SlupfariOption<bool>(ref canDropForFood, "slugpupsafari_canDropForFood_checkbox", true, this.config);
+            canDropForFoodOption = new SlupfariOption<bool>(ref canDropForFood, "slugpupsafari_canDropForFood_checkbox", true, this.config, allowGrabbingFoodOption);
             maxPupSliderOption = new SlupfariOption<int>(ref maxPupSlider, "slugpupsafari_maxPupSlider_slider", 2, this.config);
             infinitePupStackOption = new SlupfariOption<bool>(ref infinitePupStack, "slugpupsafari_infinitePupStack_checkbox", true, this.config);
             upInputController1Option = new SlupfariOption<KeyCode>(ref upInputController1, "slugpupsafari_upInputCON1_keybind", KeyCode.Joystick1Button8, this.config);
@@ -203,18 +205,26 @@ namespace FieldTrip
 
 
             base.Initialize();
-            OpTab opTab = new OpTab(this, "Main Config");
-            OpTab opTab2 = new OpTab(this, "Keep Item Config");
-            OpTab opTab3 = new OpTab(this, "Creature Immunities");
-            OpTab opTab4 = new OpTab(this, "Item Passing");
-            OpTab opTab5 = new OpTab(this, "Silliness");
-            OpTab opTab6 = new OpTab(this, "Campaign Specific");
+            OpTab mainConfigTab = new OpTab(this, "Main Config");
+            OpScrollBox mainConfigScroll = new OpScrollBox(SCROLL_POS, SCROLL_SIZE, SCROLL_CONTENT_SIZE, false, true, true);
+            OpTab keepItemTab = new OpTab(this, "Keep Item Config");
+            OpScrollBox keepItemScroll = new OpScrollBox(SCROLL_POS, SCROLL_SIZE, SCROLL_CONTENT_SIZE, false, true, true);
+            OpTab creatureImmunityTab = new OpTab(this, "Creature Immunities");
+            OpScrollBox creatureImmunityScroll = new OpScrollBox(SCROLL_POS, SCROLL_SIZE, SCROLL_CONTENT_SIZE, false, true, true);
+            OpTab itemPassingTab = new OpTab(this, "Item Passing");
+            OpScrollBox itemPassingScroll = new OpScrollBox(SCROLL_POS, SCROLL_SIZE, SCROLL_CONTENT_SIZE, false, true, true);
+            OpTab sillinessTab = new OpTab(this, "Silliness");
+            OpScrollBox sillinessScroll = new OpScrollBox(SCROLL_POS, SCROLL_SIZE, SCROLL_CONTENT_SIZE, false, true, true);
+            OpTab campaignSpecificTab = new OpTab(this, "Campaign Specific");
+            OpScrollBox campaignSpecificScroll = new OpScrollBox(SCROLL_POS, SCROLL_SIZE, SCROLL_CONTENT_SIZE, false, true, true);
+
 
             this.Tabs = new OpTab[]
             {
-                opTab, opTab6, opTab2, opTab3, opTab4, opTab5
+                mainConfigTab, campaignSpecificTab, keepItemTab, creatureImmunityTab, itemPassingTab, sillinessTab
             };
 
+            #region OptionText
             keepItemEnabledOption.AddText(
                 "Keep Items on Pickup",
                 "(Allow slugpups to keep holding their item when picked up by the player)"
@@ -235,55 +245,108 @@ namespace FieldTrip
                 "Allow Grabbing Food",
                 "(Allow slugpups to grab food while piggybacked)"
                 );
-
-
+            allowGrabbingNoodlefliesOption.AddText(
+                "Allow Grabbing Noodleflies"
+                );
+            allowGrabbingCentipedesOption.AddText(
+                "Allow Grabbing Centipedes",
+                "(Slugpups cannot eat when you are moving, so be careful)"
+                );
+            allowGrabbing5PNeuronsOption.AddText(
+                "Allow Grabbing Five Pebble's Neurons",
+                "(Neurons outside of Five Pebbles are always forbidden)"
+                );
+            allowGrabbingShroomsOption.AddText(
+                "Allow Grabbing Mushrooms"
+                );
+            allowGrabbingKarmaFlowersOption.AddText(
+                "Allow Grabbing Karma Flowers"
+                );
+            allowGrabbingTardigradesOption.AddText(
+                "Allow Grabbing Tardigrades",
+                "(Only Applicable if Watcher is Enabled)"
+                );
+            preventDraggingVinesOption.AddText(
+                "Release Vines",
+                "(Force slugpups to release vines when piggybacked)"
+                );
+            allowBackspearOption.AddText(
+                "Allow Backspear",
+                "(Piggybacked slugpups will put their spear on their back)"
+                );
+            leechProtectionOption.AddText(
+                "Leech Protection",
+                "(Leeches will not target piggybacked slugpups)"
+                );
+            coalescipedeProtectionOption.AddText(
+                "Coalescipede Protection",
+                "(Coalescipedes will not target piggybacked slugpups)"
+                );
+            canDropForFoodOption.AddText(
+                "Allow Dropping Items",
+                "(Slugpups will drop items in their hands to pick up food)"
+                );
+            maxPupSliderOption.AddText(
+                ""
+                );
+            infinitePupStackOption.AddText(
+                "Infinite Stacking"
+                );
+            itemPassingOption.AddText(
+                "Item Passing",
+                "(Allow passing items up and down the stack)"
+                );
+            playerItemMovingOption.AddText(
+                "Move Player Items",
+                "(When disabled piggybacked players will be skipped)"
+                );
+            rivDrownProtectionOption.AddText(
+                "Rivulet Drowning Immunity",
+                "(Slugpups cannot drown in Rivulet's campaign)"
+                );
+            artiBombProtectionOption.AddText(
+                "Artificer Explosion Immunity",
+                "(Slugpups resist explosions in Artificer's campaign)"
+                );
             bigHeadModeOption.AddText(
                 "Big Brain Mode",
                 "(Doubles the size of your slugpup's head for maximum brainage)"
                 );
+            stunProtectionOption.AddText(
+                "Stun Protection",
+                "(Slugpups won't fall off of stunned players and stunned pups can be piggybacked)"
+                );
+            mirosBirdProtectionOption.AddText(
+                "Miros Bird Protection",
+                "(Miros Birds will not bite piggybacked slugpups)"
+                );
+            killzoneProtectionOption.AddText(
+                "Killzone Protection",
+                "(Piggybacked slugcats will not die if out of bounds)"
+                );
+            #endregion
 
-            OpContainer tab1Container = new OpContainer(new Vector2(0, 0));
-            opTab.AddItems(tab1Container);
-            OpScrollBox mainConfigScroll = new OpScrollBox(SCROLL_POS, SCROLL_SIZE, SCROLL_CONTENT_SIZE, false, true, true);
-            UIelement[] element = new UIelement[]
+
+            mainConfigTab.AddItems(new UIelement[]
             {
                 new OpLabel(TITLE_HORIZONTAL, vert_pos, "Slugpup Safari Options", true),
-                mainConfigScroll 
-
-            };
-            opTab.AddItems(element);
+                mainConfigScroll
+            });
             vert_pos = SCROLL_POS_INIT;
-
-            mainConfigScroll.AddItems(
-                new OpCheckBox(noThrowPups, CHECKBOX_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos -= CHECKBOX_VERT_OFFSET),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos, "Pup Throw Protection", true),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos + DESC_OFFSET, "(Piggybacked slugpups must be moved to your hand in order to throw them)", false),
-                new OpCheckBox(allowBackspear, CHECKBOX_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos -= CHECKBOX_VERT_OFFSET),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos, "Allow Backspear", true),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos + DESC_OFFSET, "(Piggybacked slugpups will put their spear on their back)", false),
-                new OpCheckBox(artificerDontLaunchKids, CHECKBOX_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos -= CHECKBOX_VERT_OFFSET),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos, "Artificer Parry Protection", true),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos + DESC_OFFSET, "(Prevent piggybacked slugpups from being launched by artificer's parry)", false),
-                new OpCheckBox(pupImpactCushion, CHECKBOX_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos -= CHECKBOX_VERT_OFFSET),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos, "Pup Impact Immunity", true),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos + DESC_OFFSET, "(Piggybacked slugpups are immune to fall damage)", false),
-                new OpCheckBox(preventDraggingVines, CHECKBOX_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos -= CHECKBOX_VERT_OFFSET),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos, "Release Vines", true),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos + DESC_OFFSET, "(Force slugpups to release vines when piggybacked)", false),
-                new OpCheckBox(stunProtection, CHECKBOX_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos -= CHECKBOX_VERT_OFFSET),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos, "Stun Protection", true),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos + DESC_OFFSET, "(Slugpups won't fall off of stunned players and stunned pups can be piggybacked)", false),
-                new OpCheckBox(killzoneProtection, CHECKBOX_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos -= CHECKBOX_VERT_OFFSET),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos, "Killzone Protection", true),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos + DESC_OFFSET, "(Piggybacked slugcats will not die if out of bounds)", false),
-                new OpCheckBox(infinitePupStack, CHECKBOX_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos -= CHECKBOX_VERT_OFFSET),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos, "Infinite Stacking", true),
-                new OpTextBox(maxStack, new Vector2(CHECKBOX_LABEL_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER, vert_pos - LABEL_VERT_OFFSET), NUM_INPUT_SIZE),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL + SCROLL_HORIZONTAL_MODIFIER + NUM_INPUT_OFFSET, vert_pos - LABEL_VERT_OFFSET, "(Max if disabled)", false)
-                );
+            mainConfigScroll.AddItems([ 
+                ..noThrowPupsOption.MakeElement(ref vert_pos),
+                ..allowBackspearOption.MakeElement(ref vert_pos),
+                ..artificerDontLaunchKidsOption.MakeElement(ref vert_pos),
+                ..pupImpactCushionOption.MakeElement(ref vert_pos),
+                ..preventDraggingVinesOption.MakeElement(ref vert_pos),
+                ..stunProtectionOption.MakeElement(ref vert_pos),
+                ..killzoneProtectionOption.MakeElement(ref vert_pos),
+                ..infinitePupStackOption.MakeElement(ref vert_pos)
+                ]);
+            //mainConfigScroll.AddItems(maxStackOption.MakeElement(ref vert_pos));
             mainConfigScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
-            //reset vertpos
             vert_pos = VERT_POS_INIT;
+
             UIelement[] element2 = new UIelement[]
             {
                 new OpLabel(TITLE_HORIZONTAL, vert_pos, "Slugpup Grab Options", true),
@@ -322,9 +385,9 @@ namespace FieldTrip
                 new OpLabel(SUB_CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Allow Dropping Items", true),
                 new OpLabel(SUB_CHECKBOX_LABEL_HORIZONTAL, vert_pos + DESC_OFFSET, "(Slugpups will drop items in their hands to pick up food)", false),*/
             };
-            opTab2.AddItems(element2);
-            opTab2.AddItems(keepItemEnabledOption.MakeElement(ref vert_pos));
-            opTab2.AddItems(allowGrabbingFoodOption.MakeElement(ref vert_pos));
+            keepItemTab.AddItems(element2);
+            keepItemTab.AddItems(keepItemEnabledOption.MakeElement(ref vert_pos));
+            keepItemTab.AddItems(allowGrabbingFoodOption.MakeElement(ref vert_pos));
 
             vert_pos = VERT_POS_INIT;
             UIelement[] element3 = new UIelement[]
@@ -343,7 +406,7 @@ namespace FieldTrip
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL+IMAGE_TEXT_OFFSET + 15f, vert_pos, "Miros Bird Protection", true),
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos + DESC_OFFSET, "(Miros Birds will not bite piggybacked slugpups)", false),
             };
-            opTab3.AddItems(element3);
+            creatureImmunityTab.AddItems(element3);
 
             vert_pos = VERT_POS_INIT;
             UIelement[] element4 = new UIelement[]
@@ -373,7 +436,7 @@ namespace FieldTrip
                 new OpKeyBinder(downInputController4,new Vector2(CHECKBOX_LABEL_HORIZONTAL + KEYBIND_HORIZONTAL_OFFSET, vert_pos),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.Controller4),
 
             };
-            opTab4.AddItems(element4);
+            itemPassingTab.AddItems(element4);
             vert_pos = VERT_POS_INIT;
             UIelement[] element5 = new UIelement[]
             {
@@ -382,8 +445,8 @@ namespace FieldTrip
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Big Brain Mode", true),
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos+DESC_OFFSET, "(Doubles the size of your slugpup's head for maximum brainage)", false),*/
             };
-            opTab5.AddItems(element5);
-            opTab5.AddItems(bigHeadModeOption.MakeElement(ref vert_pos));
+            sillinessTab.AddItems(element5);
+            sillinessTab.AddItems(bigHeadModeOption.MakeElement(ref vert_pos));
             vert_pos = VERT_POS_INIT;
             UIelement[] element6 = new UIelement[]
             {
@@ -395,7 +458,7 @@ namespace FieldTrip
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Artificer Explosion Immunity", true),
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos+DESC_OFFSET, "(Slugpups resist explosions in Artificer's campaign)", false),
             };
-            opTab6.AddItems(element6);
+            campaignSpecificTab.AddItems(element6);
 
         }
 
