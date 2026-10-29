@@ -17,32 +17,32 @@ namespace FieldTrip
     {
         #region Constants
         //horizontal
-        const float CHECKBOX_HORIZONTAL = 30f;
+        const float HORIZONTAL = 30f;
+        const float TEXTBOX_LABEL_HORIZONTAL = HORIZONTAL + 10f;
         const float HORIZONTAL_INDENT = 30f;
-        const float SUB_CHECKBOX_HORIZONTAL = CHECKBOX_HORIZONTAL + 30f;
-        const float SUB_SUB_CHECKBOX_HORIZONTAL = SUB_CHECKBOX_HORIZONTAL + 50f;
-        const float CHECKBOX_LABEL_HORIZONTAL = CHECKBOX_HORIZONTAL + 35f;
-        const float SUB_CHECKBOX_LABEL_HORIZONTAL = SUB_CHECKBOX_HORIZONTAL + 35f;
-        const float SUB_SUB_CHECKBOX_LABEL_HORIZONTAL = SUB_SUB_CHECKBOX_HORIZONTAL + 35f;
-        const float KEYBIND_HORIZONTAL_OFFSET = 200f;
+        const float CHECKBOX_LABEL_HORIZONTAL = HORIZONTAL + 35f;
+        const float KEYBIND_HORIZONTAL_2ND_ROW_OFFSET = 250f;
+        const float KEYBIND_HORIZONTAL_OFFSET = HORIZONTAL + 30f;
         const float NUM_INPUT_OFFSET = 60f;
         //horizontal (scroll box)
         const float SCROLL_HORIZONTAL_MODIFIER = -35f;
 
         //vertical
-        const float CHECKBOX_VERT_OFFSET = 70f;
+        const float CHECKBOX_VERT_OFFSET = 80f;
+
+        const float KEYBIND_PARAGRAPH_VERT_OFFSET = 100f;
+
         const float MINI_CHECKBOX_VERT_OFFSET = 50f;
-        const float LABEL_VERT_OFFSET = 30f;
-        const float SUB_CHECKBOX_VERT_OFFSET = CHECKBOX_VERT_OFFSET - 10;
-        const float SUB_SUB_CHECKBOX_VERT_OFFSET = CHECKBOX_VERT_OFFSET - 15;
-        const float KEYBIND_VERT_OFFSET = -40f;
+        const float KEYBIND_VERT_OFFSET = 50f;
         const float SCROLL_BOTTOM_PADDING = 60f;
 
-        const float KEYBIND_HEIGHT = (KEYBIND_VERT_OFFSET * (-1)) - 20f;
-        const float KEYBIND_LENGTH = KEYBIND_HORIZONTAL_OFFSET - 50f;
+        const float KEYBIND_HEIGHT = (KEYBIND_VERT_OFFSET) - 20f;
+        const float KEYBIND_LENGTH = KEYBIND_HORIZONTAL_2ND_ROW_OFFSET - 50f;
+        const float KEYBIND_DESC_HORIZONTAL_OFFSET = KEYBIND_HORIZONTAL_OFFSET - 10f;
+        const float KEYBIND_DESC_VERTICAL_OFFSET = KEYBIND_HEIGHT;
         const float IMAGE_TEXT_OFFSET = 30f;
         const float CHECKBOX_IMAGE_OFFSET = -23f;
-        const float DESC_OFFSET = -20f;
+        const float DESC_OFFSET = 20f;
         const float VERT_POS_INIT = 550f;
         const float SCROLL_POS_INIT = 505f;
         const float TITLE_HORIZONTAL = 40f;
@@ -55,6 +55,69 @@ namespace FieldTrip
         Vector2 SCROLL_SIZE = new(580f, 500f);
         #endregion
 
+        public class SlupfariKeyBind
+        {
+            string title;
+            Configurable<KeyCode> keyboard;
+            Configurable<KeyCode> controller1;
+            Configurable<KeyCode> controller2;
+            Configurable<KeyCode> controller3;
+            Configurable<KeyCode> controller4;
+            bool leftSide;
+            bool preserveVertPos;
+            UIelement[] elements;
+            float horzOffset;
+
+            public SlupfariKeyBind(
+                SlupfariOption<KeyCode> keyboard,
+                SlupfariOption<KeyCode> controller1,
+                SlupfariOption<KeyCode> controller2,
+                SlupfariOption<KeyCode> controller3,
+                SlupfariOption<KeyCode> controller4,
+                bool leftSide, bool preserveVertPos)
+            {
+                this.keyboard = keyboard.Get_Config();
+                this.controller1 = controller1.Get_Config();
+                this.controller2 = controller2.Get_Config();
+                this.controller3 = controller3.Get_Config();
+                this.controller4 = controller4.Get_Config();
+                this.leftSide = leftSide; // has the actual keyboard/controller label
+                this.preserveVertPos = preserveVertPos;
+                this.horzOffset = (leftSide) ? 0 : KEYBIND_HORIZONTAL_2ND_ROW_OFFSET;
+            }
+            public void AddText(string title = "")
+            {
+                this.title = title;
+            }
+            public UIelement[] MakeElement(ref float vert_pos)
+            {
+                //if(!leftSide) return [];
+                float vertOffset = 0;
+                elements = new UIelement[]
+                {
+                    //TODO: Consolidate some of these for readability
+                    new OpLabel(HORIZONTAL + horzOffset, vert_pos + (vertOffset -= KEYBIND_PARAGRAPH_VERT_OFFSET), title, true),
+
+                    new OpLabel(horzOffset + KEYBIND_DESC_HORIZONTAL_OFFSET, vert_pos + KEYBIND_DESC_VERTICAL_OFFSET + (vertOffset -= KEYBIND_VERT_OFFSET), "Keyboard", false),
+                    new OpKeyBinder(keyboard,new Vector2(KEYBIND_HORIZONTAL_OFFSET + horzOffset, vert_pos + vertOffset),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.AnyController),
+
+                    new OpLabel(horzOffset + KEYBIND_DESC_HORIZONTAL_OFFSET, vert_pos  + KEYBIND_DESC_VERTICAL_OFFSET +  (vertOffset -= KEYBIND_VERT_OFFSET), "Controller 1", false),
+                    new OpKeyBinder(controller1,new Vector2(KEYBIND_HORIZONTAL_OFFSET + horzOffset, vert_pos + vertOffset),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.Controller1),
+
+                    new OpLabel(horzOffset + KEYBIND_DESC_HORIZONTAL_OFFSET, vert_pos  + KEYBIND_DESC_VERTICAL_OFFSET +  (vertOffset -= KEYBIND_VERT_OFFSET), "Controller 2", false),
+                    new OpKeyBinder(controller2,new Vector2(KEYBIND_HORIZONTAL_OFFSET + horzOffset, vert_pos + vertOffset),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.Controller2),
+
+                    new OpLabel(horzOffset + KEYBIND_DESC_HORIZONTAL_OFFSET, vert_pos  + KEYBIND_DESC_VERTICAL_OFFSET +  (vertOffset -= KEYBIND_VERT_OFFSET), "Controller 3", false),
+                    new OpKeyBinder(controller3,new Vector2(KEYBIND_HORIZONTAL_OFFSET + horzOffset, vert_pos + vertOffset),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.Controller3),
+
+                    new OpLabel(horzOffset + KEYBIND_DESC_HORIZONTAL_OFFSET, vert_pos  + KEYBIND_DESC_VERTICAL_OFFSET +  (vertOffset -= KEYBIND_VERT_OFFSET), "Controller 4", false),
+                    new OpKeyBinder(controller4,new Vector2(KEYBIND_HORIZONTAL_OFFSET + horzOffset, vert_pos + vertOffset),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.Controller4),
+                };
+                if (!preserveVertPos) vert_pos += vertOffset;
+                return elements;
+
+            }
+        }
         public class SlupfariOption<T>
         {
             Configurable<T> config;
@@ -81,8 +144,11 @@ namespace FieldTrip
                 
                 this.vertOffset = SCROLL_POS_INIT;
                 this.horiOffset = (parent != null) ? parent.horiOffset + HORIZONTAL_INDENT : 0;
+            }
 
-
+            public Configurable<T> Get_Config()
+            {
+                return this.config;
             }
             public void AddText(string title, string desc = "")
             {
@@ -100,9 +166,9 @@ namespace FieldTrip
                     Configurable<bool> option = config as Configurable<bool>;
                     elements = new UIelement[]
                     {
-                        new OpCheckBox(option, CHECKBOX_HORIZONTAL + horiOffset, vert_pos -= CHECKBOX_VERT_OFFSET),
+                        new OpCheckBox(option, HORIZONTAL + horiOffset, vert_pos -= CHECKBOX_VERT_OFFSET),
                         new OpLabel(CHECKBOX_LABEL_HORIZONTAL + horiOffset, vert_pos, this.title, true),
-                        new OpLabel(CHECKBOX_LABEL_HORIZONTAL + horiOffset, vert_pos + DESC_OFFSET, this.desc, false),
+                        new OpLabel(CHECKBOX_LABEL_HORIZONTAL + horiOffset, vert_pos - DESC_OFFSET, this.desc, false),
                     };
                 }
                 else if (type == typeof(int))
@@ -112,9 +178,9 @@ namespace FieldTrip
                     {
                         // TODO: Standardize the offsets for children and text boxes
                         // rn we need an offset for text boxes, both vertical and horizontal
-                        new OpTextBox(option, new Vector2(CHECKBOX_HORIZONTAL + horiOffset, vert_pos -= MINI_CHECKBOX_VERT_OFFSET), NUM_INPUT_SIZE),
-                        new OpLabel(NUM_INPUT_SIZE + horiOffset, vert_pos, this.title, true),
-                        new OpLabel(NUM_INPUT_SIZE + horiOffset, vert_pos + DESC_OFFSET, this.desc, false),
+                        new OpTextBox(option, new Vector2(HORIZONTAL + horiOffset, vert_pos -= MINI_CHECKBOX_VERT_OFFSET), NUM_INPUT_SIZE),
+                        new OpLabel(TEXTBOX_LABEL_HORIZONTAL + NUM_INPUT_SIZE + horiOffset, vert_pos, this.title, true),
+                        new OpLabel(TEXTBOX_LABEL_HORIZONTAL + NUM_INPUT_SIZE + horiOffset, vert_pos - DESC_OFFSET, this.desc, false),
                     };
                 }
                 return elements;
@@ -173,6 +239,9 @@ namespace FieldTrip
         SlupfariOption<int> maxStackOption;
         SlupfariOption<bool> mirosBirdProtectionOption;
         SlupfariOption<bool> killzoneProtectionOption;
+        SlupfariKeyBind passUpKeyBind;
+        SlupfariKeyBind passDownKeyBind;
+
         #endregion
         public OptionsMenu(FieldTripMain plugin)
         {
@@ -213,6 +282,8 @@ namespace FieldTrip
             maxStackOption = new SlupfariOption<int>(ref maxStack, "slugpupsafari_maxStack_textBox", 1, this.config, infinitePupStackOption);
             mirosBirdProtectionOption = new SlupfariOption<bool>(ref mirosBirdProtection, "slugpupsafari_mirosBirdProtection_checkbox", true, this.config);
             killzoneProtectionOption = new SlupfariOption<bool>(ref killzoneProtection, "slugpupsafari_killzone_checkbox", true, this.config);
+            passUpKeyBind = new SlupfariKeyBind(upInputKBOption, upInputController1Option, upInputController2Option, upInputController3Option, upInputController4Option, true, true);
+            passDownKeyBind = new SlupfariKeyBind(downInputKBOption, downInputController1Option, downInputController2Option, downInputController3Option, downInputController4Option, false, false);
         }
         public override void Initialize()
         {
@@ -339,9 +410,13 @@ namespace FieldTrip
                 "Killzone Protection",
                 "(Piggybacked slugcats will not die if out of bounds)"
                 );
+            passUpKeyBind.AddText("Pass Up");
+            passDownKeyBind.AddText("Pass Down");
+
             #endregion
 
 
+            vert_pos = VERT_POS_INIT;
             mainConfigTab.AddItems(new UIelement[]
             {
                 new OpLabel(TITLE_HORIZONTAL, vert_pos, "Slugpup Safari Options", true),
@@ -358,11 +433,11 @@ namespace FieldTrip
                 ..killzoneProtectionOption.MakeElement(ref vert_pos),
                 ..infinitePupStackOption.MakeElement(ref vert_pos),
                 ..maxStackOption.MakeElement(ref vert_pos)
-                ]);
+            ]);
             mainConfigScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
-            vert_pos = VERT_POS_INIT;
 
-            
+
+            vert_pos = VERT_POS_INIT;
             keepItemTab.AddItems(new UIelement[]
             {
                 new OpLabel(TITLE_HORIZONTAL, vert_pos, "Slugpup Grab Options", true),
@@ -379,45 +454,41 @@ namespace FieldTrip
                 ..allowGrabbingShroomsOption.MakeElement(ref vert_pos),
                 ..allowGrabbingKarmaFlowersOption.MakeElement(ref vert_pos),
                 ..canDropForFoodOption.MakeElement(ref vert_pos)
-                ]);
+            ]);
             keepItemScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
-            vert_pos = VERT_POS_INIT;
+
 
             vert_pos = VERT_POS_INIT;
-            UIelement[] element3 = new UIelement[]
+            creatureImmunityTab.AddItems(new UIelement[]
             {
                 new OpLabel(TITLE_HORIZONTAL, vert_pos, "Creature Protection Options", true),
-                new OpCheckBox(leechProtection, CHECKBOX_HORIZONTAL, vert_pos -= CHECKBOX_VERT_OFFSET),
-                new OpImage(new Vector2(CHECKBOX_LABEL_HORIZONTAL+5f, vert_pos + 5f), "Kill_Leech"),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL+IMAGE_TEXT_OFFSET, vert_pos, "Leech Protection", true),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos + DESC_OFFSET, "(Leeches will not target piggybacked slugpups)", false),
-                new OpCheckBox(coalescipedeProtection, CHECKBOX_HORIZONTAL, vert_pos -= CHECKBOX_VERT_OFFSET),
-                new OpImage(new Vector2(CHECKBOX_LABEL_HORIZONTAL, vert_pos+ 5f), "Kill_SmallSpider"),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL+IMAGE_TEXT_OFFSET, vert_pos, "Coalescipede Protection", true),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos + DESC_OFFSET, "(Coalescipedes will not target piggybacked slugpups)", false),
-                new OpCheckBox(mirosBirdProtection, CHECKBOX_HORIZONTAL, vert_pos -= CHECKBOX_VERT_OFFSET),
-                new OpImage(new Vector2(CHECKBOX_LABEL_HORIZONTAL, vert_pos+ 5f), "Kill_MirosBird"),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL+IMAGE_TEXT_OFFSET + 15f, vert_pos, "Miros Bird Protection", true),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos + DESC_OFFSET, "(Miros Birds will not bite piggybacked slugpups)", false),
-            };
-            creatureImmunityTab.AddItems(element3);
+                creatureImmunityScroll
+            });
+            vert_pos = SCROLL_POS_INIT;
+            creatureImmunityScroll.AddItems([
+                ..leechProtectionOption.MakeElement(ref vert_pos),
+                ..coalescipedeProtectionOption.MakeElement(ref vert_pos),
+                ..mirosBirdProtectionOption.MakeElement(ref vert_pos)
+            ]);
+            creatureImmunityScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
 
-            vert_pos = VERT_POS_INIT;
+
+            /*vert_pos = VERT_POS_INIT;
             UIelement[] element4 = new UIelement[]
             {
                 new OpLabel(TITLE_HORIZONTAL, vert_pos, "Controls", true),
-                new OpCheckBox(itemPassing, CHECKBOX_HORIZONTAL, vert_pos -= MINI_CHECKBOX_VERT_OFFSET),
+                new OpCheckBox(itemPassing, HORIZONTAL, vert_pos -= MINI_CHECKBOX_VERT_OFFSET),
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Item Passing", true),
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos + DESC_OFFSET, "(Allow passing items up and down the stack)", false),
-                new OpCheckBox(playerItemMoving, CHECKBOX_HORIZONTAL, vert_pos -= MINI_CHECKBOX_VERT_OFFSET),
+                new OpCheckBox(playerItemMoving, HORIZONTAL, vert_pos -= MINI_CHECKBOX_VERT_OFFSET),
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Move Player Items", true),
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos + DESC_OFFSET, "(When disabled piggybacked players will be skipped)", false),
-                new OpLabel(CHECKBOX_HORIZONTAL, vert_pos-= 2* MINI_CHECKBOX_VERT_OFFSET, "Keyboard", true),
+                new OpLabel(HORIZONTAL, vert_pos-= 2* MINI_CHECKBOX_VERT_OFFSET, "Keyboard", true),
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos-=LABEL_VERT_OFFSET, "Pass Up", true),
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL+ KEYBIND_HORIZONTAL_OFFSET, vert_pos, "Pass Down", true),
                 new OpKeyBinder(upInputKB,new Vector2(CHECKBOX_LABEL_HORIZONTAL, vert_pos += KEYBIND_VERT_OFFSET),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.AnyController),
                 new OpKeyBinder(downInputKB,new Vector2(CHECKBOX_LABEL_HORIZONTAL + KEYBIND_HORIZONTAL_OFFSET, vert_pos),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.AnyController),
-                new OpLabel(CHECKBOX_HORIZONTAL, vert_pos-= MINI_CHECKBOX_VERT_OFFSET, "Controller", true),
+                new OpLabel(HORIZONTAL, vert_pos-= MINI_CHECKBOX_VERT_OFFSET, "Controller", true),
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos-=LABEL_VERT_OFFSET, "Pass Up", true),
                 new OpLabel(CHECKBOX_LABEL_HORIZONTAL+ KEYBIND_HORIZONTAL_OFFSET, vert_pos, "Pass Down", true),
                 new OpKeyBinder(upInputController1,new Vector2(CHECKBOX_LABEL_HORIZONTAL, vert_pos += KEYBIND_VERT_OFFSET),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.Controller1),
@@ -428,31 +499,51 @@ namespace FieldTrip
                 new OpKeyBinder(downInputController3,new Vector2(CHECKBOX_LABEL_HORIZONTAL + KEYBIND_HORIZONTAL_OFFSET, vert_pos),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.Controller3),
                 new OpKeyBinder(upInputController4,new Vector2(CHECKBOX_LABEL_HORIZONTAL, vert_pos += KEYBIND_VERT_OFFSET),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.Controller4),
                 new OpKeyBinder(downInputController4,new Vector2(CHECKBOX_LABEL_HORIZONTAL + KEYBIND_HORIZONTAL_OFFSET, vert_pos),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.Controller4),
-
             };
-            itemPassingTab.AddItems(element4);
+            itemPassingTab.AddItems(element4);*/
+
             vert_pos = VERT_POS_INIT;
-            UIelement[] element5 = new UIelement[]
+            itemPassingTab.AddItems(new UIelement[]
+            {
+                new OpLabel(TITLE_HORIZONTAL, vert_pos, "Controls", true),
+                itemPassingScroll
+            });
+            vert_pos = SCROLL_POS_INIT;
+            itemPassingScroll.AddItems([
+                ..itemPassingOption.MakeElement(ref vert_pos),
+                ..playerItemMovingOption.MakeElement(ref vert_pos),
+                ..passUpKeyBind.MakeElement(ref vert_pos),
+                ..passDownKeyBind.MakeElement(ref vert_pos)
+
+            ]);
+            itemPassingScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
+
+
+            vert_pos = VERT_POS_INIT;
+            sillinessTab.AddItems(new UIelement[]
             {
                 new OpLabel(TITLE_HORIZONTAL, vert_pos, "Silliness", true),
-/*                new OpCheckBox(bigHeadMode, CHECKBOX_HORIZONTAL, vert_pos -= CHECKBOX_VERT_OFFSET),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Big Brain Mode", true),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos+DESC_OFFSET, "(Doubles the size of your slugpup's head for maximum brainage)", false),*/
-            };
-            sillinessTab.AddItems(element5);
-            sillinessTab.AddItems(bigHeadModeOption.MakeElement(ref vert_pos));
+                sillinessScroll
+            });
+            vert_pos = SCROLL_POS_INIT;
+            sillinessScroll.AddItems([
+                ..bigHeadModeOption.MakeElement(ref vert_pos)
+            ]);
+            sillinessScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
+
+
             vert_pos = VERT_POS_INIT;
-            UIelement[] element6 = new UIelement[]
+            campaignSpecificTab.AddItems(new UIelement[]
             {
                 new OpLabel(TITLE_HORIZONTAL, vert_pos, "Campaign Specific", true),
-                new OpCheckBox(rivDrownProtection, CHECKBOX_HORIZONTAL, vert_pos -= CHECKBOX_VERT_OFFSET),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Rivulet Drowning Immunity", true),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos+DESC_OFFSET, "(Slugpups cannot drown in Rivulet's campaign)", false),
-                new OpCheckBox(artiBombProtection, CHECKBOX_HORIZONTAL, vert_pos -= CHECKBOX_VERT_OFFSET),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Artificer Explosion Immunity", true),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos+DESC_OFFSET, "(Slugpups resist explosions in Artificer's campaign)", false),
-            };
-            campaignSpecificTab.AddItems(element6);
+                campaignSpecificScroll
+            });
+            vert_pos = SCROLL_POS_INIT;
+            campaignSpecificScroll.AddItems([
+                ..rivDrownProtectionOption.MakeElement(ref vert_pos),
+                ..artiBombProtectionOption.MakeElement(ref vert_pos)
+            ]);
+            campaignSpecificScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
 
         }
 
