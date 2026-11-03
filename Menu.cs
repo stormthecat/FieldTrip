@@ -120,7 +120,11 @@ namespace FieldTrip
 
             }
         }
-        public class SlupfariOption<T>
+        interface SlupfariOptionInterface
+        {
+            void Update();
+        }
+        public class SlupfariOption<T> : SlupfariOptionInterface
         {
             Configurable<T> config;
             Type type;
@@ -137,10 +141,8 @@ namespace FieldTrip
                 INVERSE,
                 NONINVERSE
             }
-
             childDisableStates childDisableMode;
             
-
             float vertOffset;
             float horiOffset;
             SlupfariOption<bool> parent;
@@ -212,16 +214,15 @@ namespace FieldTrip
             }
             public void Update()
             {
-                T val = this.config.Value;
-                bool booleanVal = (val as bool?).Value; //get a proper boolean value for following switch statement
+                bool booleanVal = (this.config.Value as bool?).GetValueOrDefault(); //get a proper boolean value for following switch statement
 
                 switch (childDisableMode)
                 {
                     case childDisableStates.NONINVERSE:
-                        this.disableChildrenFlag = booleanVal;
+                        this.disableChildrenFlag = !booleanVal;
                         break;
                     case childDisableStates.INVERSE:
-                        this.disableChildrenFlag = !booleanVal;
+                        this.disableChildrenFlag = booleanVal;
                         break;
                     default:
                         this.disableChildrenFlag = this.disableChildren;
@@ -229,11 +230,13 @@ namespace FieldTrip
                 }
 
                 if (this.parent != null) this.greyedOut = this.parent.disableChildrenFlag;
-                foreach (UIelement element in elements)
+                if(elements is not null)
                 {
-                    UIconfig uiConfig = element as UIconfig;
-                    if (uiConfig != null) uiConfig.greyedOut = this.greyedOut;
-
+                    foreach (UIelement element in elements)
+                    {
+                        UIconfig uiConfig = element as UIconfig;
+                        if (uiConfig != null) uiConfig.greyedOut = this.greyedOut;
+                    }
                 }
             }
 
@@ -280,48 +283,50 @@ namespace FieldTrip
         SlupfariOption<bool> killzoneProtectionOption;
         SlupfariKeyBind passUpKeyBind;
         SlupfariKeyBind passDownKeyBind;
-
         #endregion
+        SlupfariOptionInterface[] optionUpdateList;
         public OptionsMenu(FieldTripMain plugin)
         {
-
-            keepItemEnabledOption = new SlupfariOption<bool>(ref keepItemEnabled, "slugpupsafari_keepItemOnPickup_checkbox", true, this.config);
-            artificerDontLaunchKidsOption = new SlupfariOption<bool>(ref artificerDontLaunchKids, "slugpupsafari_artificerdontlaunchkids_checkbox", true, this.config);
-            noThrowPupsOption = new SlupfariOption<bool>(ref noThrowPups, "slugpupsafari_noThrowPups_checkbox", true, this.config);
-            pupImpactCushionOption = new SlupfariOption<bool>(ref pupImpactCushion, "slugpupsafari_pupimpactcushion_checkbox", true, this.config);
-            allowGrabbingFoodOption = new SlupfariOption<bool>(ref allowGrabbingFood, "slugpupsafari_allowgrabbingfood_checkbox", true, this.config, keepItemEnabledOption);
-            allowGrabbingNoodlefliesOption = new SlupfariOption<bool>(ref allowGrabbingNoodleflies, "slugpupsafari_allowgrabbingnoodleflies_checkbox", false, this.config, allowGrabbingFoodOption);
-            allowGrabbingCentipedesOption = new SlupfariOption<bool>(ref allowGrabbingCentipedes, "slugpupsafari_allowgrabbingcentipedes_checkbox", true, this.config, allowGrabbingFoodOption);
-            allowGrabbing5PNeuronsOption = new SlupfariOption<bool>(ref allowGrabbing5PNeurons, "slugpupsafari_allowgrabbing5Pneurons_checkbox", true, this.config, allowGrabbingFoodOption);
-            allowGrabbingShroomsOption = new SlupfariOption<bool>(ref allowGrabbingShrooms, "slugpupsafari_allowgrabbingShrooms_checkbox", false, this.config, allowGrabbingFoodOption);
-            allowGrabbingKarmaFlowersOption = new SlupfariOption<bool>(ref allowGrabbingKarmaFlowers, "slugpupsafari_allowgrabbingKarmaFlowers_checkbox", true, this.config, allowGrabbingFoodOption);
-            allowGrabbingTardigradesOption = new SlupfariOption<bool>(ref allowGrabbingTardigrades, "slugpupsafari_allowgrabbingTardigrades_checkbox", false, this.config, allowGrabbingFoodOption);
-            preventDraggingVinesOption = new SlupfariOption<bool>(ref preventDraggingVines, "slugpupsafari_preventDraggingVines_checkbox", false, this.config);
-            allowBackspearOption = new SlupfariOption<bool>(ref allowBackspear, "slugpupsafari_allowBackspear_checkbox", true, this.config);
-            leechProtectionOption = new SlupfariOption<bool>(ref leechProtection, "slugpupsafari_leechProtection_checkbox", false, this.config);
-            coalescipedeProtectionOption = new SlupfariOption<bool>(ref coalescipedeProtection, "slugpupsafari_coalescipedeProtection_checkbox", true, this.config);
-            canDropForFoodOption = new SlupfariOption<bool>(ref canDropForFood, "slugpupsafari_canDropForFood_checkbox", true, this.config, allowGrabbingFoodOption);
-            maxPupSliderOption = new SlupfariOption<int>(ref maxPupSlider, "slugpupsafari_maxPupSlider_slider", 2, this.config);
-            infinitePupStackOption = new SlupfariOption<bool>(ref infinitePupStack, "slugpupsafari_infinitePupStack_checkbox", true, this.config);
-            upInputController1Option = new SlupfariOption<KeyCode>(ref upInputController1, "slugpupsafari_upInputCON1_keybind", KeyCode.Joystick1Button8, this.config);
-            downInputController1Option = new SlupfariOption<KeyCode>(ref downInputController1, "slugpupsafari_downInputCON1_keybind", KeyCode.Joystick1Button9, this.config);
-            upInputController2Option = new SlupfariOption<KeyCode>(ref upInputController2, "slugpupsafari_upInputCON2_keybind", KeyCode.Joystick2Button8, this.config);
-            downInputController2Option = new SlupfariOption<KeyCode>(ref downInputController2, "slugpupsafari_downInputCON2_keybind", KeyCode.Joystick2Button9, this.config);
-            upInputController3Option = new SlupfariOption<KeyCode>(ref upInputController3, "slugpupsafari_upInputCON3_keybind", KeyCode.Joystick3Button8, this.config);
-            downInputController3Option = new SlupfariOption<KeyCode>(ref downInputController3, "slugpupsafari_downInputCON3_keybind", KeyCode.Joystick3Button9, this.config);
-            upInputController4Option = new SlupfariOption<KeyCode>(ref upInputController4, "slugpupsafari_upInputCON4_keybind", KeyCode.Joystick4Button8, this.config);
-            downInputController4Option = new SlupfariOption<KeyCode>(ref downInputController4, "slugpupsafari_downInputCON4_keybind", KeyCode.Joystick4Button9, this.config);
-            upInputKBOption = new SlupfariOption<KeyCode>(ref upInputKB, "slugpupsafari_upInputKB_keybind", KeyCode.LeftBracket, this.config);
-            downInputKBOption = new SlupfariOption<KeyCode>(ref downInputKB, "slugpupsafari_dowbInputKB_keybind", KeyCode.RightBracket, this.config);
-            itemPassingOption = new SlupfariOption<bool>(ref itemPassing, "slugpupsafari_itemPassing_checkbox", true, this.config);
-            playerItemMovingOption = new SlupfariOption<bool>(ref playerItemMoving, "slugpupsafari_playerItemMoving_checkbox", false, this.config);
-            rivDrownProtectionOption = new SlupfariOption<bool>(ref rivDrownProtection, "slugpupsafari_rivDrownProtection_checkbox", true, this.config);
-            artiBombProtectionOption = new SlupfariOption<bool>(ref artiBombProtection, "slugpupsafari_artiBombProtection_checkbox", true, this.config);
-            bigHeadModeOption = new SlupfariOption<bool>(ref bigHeadMode, "slugpupsafari_bigHeadMode_checkbox", false, this.config);
-            stunProtectionOption = new SlupfariOption<bool>(ref stunProtection, "slugpupsafari_stunProtection_checkbox", true, this.config);
-            maxStackOption = new SlupfariOption<int>(ref maxStack, "slugpupsafari_maxStack_textBox", 1, this.config, infinitePupStackOption);
-            mirosBirdProtectionOption = new SlupfariOption<bool>(ref mirosBirdProtection, "slugpupsafari_mirosBirdProtection_checkbox", true, this.config);
-            killzoneProtectionOption = new SlupfariOption<bool>(ref killzoneProtection, "slugpupsafari_killzone_checkbox", true, this.config);
+            optionUpdateList = new SlupfariOptionInterface[]
+            {
+                keepItemEnabledOption = new SlupfariOption<bool>(ref keepItemEnabled, "slugpupsafari_keepItemOnPickup_checkbox", true, this.config),
+                artificerDontLaunchKidsOption = new SlupfariOption<bool>(ref artificerDontLaunchKids, "slugpupsafari_artificerdontlaunchkids_checkbox", true, this.config),
+                noThrowPupsOption = new SlupfariOption<bool>(ref noThrowPups, "slugpupsafari_noThrowPups_checkbox", true, this.config),
+                pupImpactCushionOption = new SlupfariOption<bool>(ref pupImpactCushion, "slugpupsafari_pupimpactcushion_checkbox", true, this.config),
+                allowGrabbingFoodOption = new SlupfariOption<bool>(ref allowGrabbingFood, "slugpupsafari_allowgrabbingfood_checkbox", true, this.config, keepItemEnabledOption),
+                allowGrabbingNoodlefliesOption = new SlupfariOption<bool>(ref allowGrabbingNoodleflies, "slugpupsafari_allowgrabbingnoodleflies_checkbox", false, this.config, allowGrabbingFoodOption),
+                allowGrabbingCentipedesOption = new SlupfariOption<bool>(ref allowGrabbingCentipedes, "slugpupsafari_allowgrabbingcentipedes_checkbox", true, this.config, allowGrabbingFoodOption),
+                allowGrabbing5PNeuronsOption = new SlupfariOption<bool>(ref allowGrabbing5PNeurons, "slugpupsafari_allowgrabbing5Pneurons_checkbox", true, this.config, allowGrabbingFoodOption),
+                allowGrabbingShroomsOption = new SlupfariOption<bool>(ref allowGrabbingShrooms, "slugpupsafari_allowgrabbingShrooms_checkbox", false, this.config, allowGrabbingFoodOption),
+                allowGrabbingKarmaFlowersOption = new SlupfariOption<bool>(ref allowGrabbingKarmaFlowers, "slugpupsafari_allowgrabbingKarmaFlowers_checkbox", true, this.config, allowGrabbingFoodOption),
+                allowGrabbingTardigradesOption = new SlupfariOption<bool>(ref allowGrabbingTardigrades, "slugpupsafari_allowgrabbingTardigrades_checkbox", false, this.config, allowGrabbingFoodOption),
+                preventDraggingVinesOption = new SlupfariOption<bool>(ref preventDraggingVines, "slugpupsafari_preventDraggingVines_checkbox", false, this.config),
+                allowBackspearOption = new SlupfariOption<bool>(ref allowBackspear, "slugpupsafari_allowBackspear_checkbox", true, this.config),
+                leechProtectionOption = new SlupfariOption<bool>(ref leechProtection, "slugpupsafari_leechProtection_checkbox", false, this.config),
+                coalescipedeProtectionOption = new SlupfariOption<bool>(ref coalescipedeProtection, "slugpupsafari_coalescipedeProtection_checkbox", true, this.config),
+                canDropForFoodOption = new SlupfariOption<bool>(ref canDropForFood, "slugpupsafari_canDropForFood_checkbox", true, this.config, allowGrabbingFoodOption),
+                maxPupSliderOption = new SlupfariOption<int>(ref maxPupSlider, "slugpupsafari_maxPupSlider_slider", 2, this.config),
+                infinitePupStackOption = new SlupfariOption<bool>(ref infinitePupStack, "slugpupsafari_infinitePupStack_checkbox", true, this.config),
+                upInputController1Option = new SlupfariOption<KeyCode>(ref upInputController1, "slugpupsafari_upInputCON1_keybind", KeyCode.Joystick1Button8, this.config),
+                downInputController1Option = new SlupfariOption<KeyCode>(ref downInputController1, "slugpupsafari_downInputCON1_keybind", KeyCode.Joystick1Button9, this.config),
+                upInputController2Option = new SlupfariOption<KeyCode>(ref upInputController2, "slugpupsafari_upInputCON2_keybind", KeyCode.Joystick2Button8, this.config),
+                downInputController2Option = new SlupfariOption<KeyCode>(ref downInputController2, "slugpupsafari_downInputCON2_keybind", KeyCode.Joystick2Button9, this.config),
+                upInputController3Option = new SlupfariOption<KeyCode>(ref upInputController3, "slugpupsafari_upInputCON3_keybind", KeyCode.Joystick3Button8, this.config),
+                downInputController3Option = new SlupfariOption<KeyCode>(ref downInputController3, "slugpupsafari_downInputCON3_keybind", KeyCode.Joystick3Button9, this.config),
+                upInputController4Option = new SlupfariOption<KeyCode>(ref upInputController4, "slugpupsafari_upInputCON4_keybind", KeyCode.Joystick4Button8, this.config),
+                downInputController4Option = new SlupfariOption<KeyCode>(ref downInputController4, "slugpupsafari_downInputCON4_keybind", KeyCode.Joystick4Button9, this.config),
+                upInputKBOption = new SlupfariOption<KeyCode>(ref upInputKB, "slugpupsafari_upInputKB_keybind", KeyCode.LeftBracket, this.config),
+                downInputKBOption = new SlupfariOption<KeyCode>(ref downInputKB, "slugpupsafari_dowbInputKB_keybind", KeyCode.RightBracket, this.config),
+                itemPassingOption = new SlupfariOption<bool>(ref itemPassing, "slugpupsafari_itemPassing_checkbox", true, this.config),
+                playerItemMovingOption = new SlupfariOption<bool>(ref playerItemMoving, "slugpupsafari_playerItemMoving_checkbox", false, this.config),
+                rivDrownProtectionOption = new SlupfariOption<bool>(ref rivDrownProtection, "slugpupsafari_rivDrownProtection_checkbox", true, this.config),
+                artiBombProtectionOption = new SlupfariOption<bool>(ref artiBombProtection, "slugpupsafari_artiBombProtection_checkbox", true, this.config),
+                bigHeadModeOption = new SlupfariOption<bool>(ref bigHeadMode, "slugpupsafari_bigHeadMode_checkbox", false, this.config),
+                stunProtectionOption = new SlupfariOption<bool>(ref stunProtection, "slugpupsafari_stunProtection_checkbox", true, this.config),
+                maxStackOption = new SlupfariOption<int>(ref maxStack, "slugpupsafari_maxStack_textBox", 1, this.config, infinitePupStackOption),
+                mirosBirdProtectionOption = new SlupfariOption<bool>(ref mirosBirdProtection, "slugpupsafari_mirosBirdProtection_checkbox", true, this.config),
+                killzoneProtectionOption = new SlupfariOption<bool>(ref killzoneProtection, "slugpupsafari_killzone_checkbox", true, this.config),
+            };
             passUpKeyBind = new SlupfariKeyBind(upInputKBOption, upInputController1Option, upInputController2Option, upInputController3Option, upInputController4Option, true, true);
             passDownKeyBind = new SlupfariKeyBind(downInputKBOption, downInputController1Option, downInputController2Option, downInputController3Option, downInputController4Option, false, false);
         }
@@ -567,17 +572,10 @@ namespace FieldTrip
         public override void Update()
         {
             base.Update();
-/*            bool enableitems
-            foreach (UIelement uielement in this.Tabs[1].items.ToArray<UIelement>())
+            foreach (SlupfariOptionInterface option in optionUpdateList)
             {
-                if (uielement.GetType().IsSubclassOf(typeof(UIconfig)) && !(uielement as UIconfig).cosmetic)
-                {
-                    UIconfig elem = uielement as UIconfig;
-                    if(elem.cfgEntry == keepItemEnabled)
-
-                }
-            }*/
-
+                option.Update();
+            }
         }
 
         bool GetKeepItemEnabled()
