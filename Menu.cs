@@ -10,6 +10,7 @@ using static System.Runtime.CompilerServices.RuntimeHelpers;
 using System.Runtime.CompilerServices;
 using System.Runtime.Remoting.Metadata.W3cXsd2001;
 using System.CodeDom;
+using UnityEngine.PlayerLoop;
 
 namespace FieldTrip
 {
@@ -23,16 +24,14 @@ namespace FieldTrip
         const float CHECKBOX_LABEL_HORIZONTAL = HORIZONTAL + 35f;
         const float KEYBIND_HORIZONTAL_2ND_ROW_OFFSET = 250f;
         const float KEYBIND_HORIZONTAL_OFFSET = HORIZONTAL + 30f;
-        const float NUM_INPUT_OFFSET = 60f;
-        //horizontal (scroll box)
-        const float SCROLL_HORIZONTAL_MODIFIER = -35f;
+
 
         //vertical
-        const float CHECKBOX_VERT_OFFSET = 80f;
+        const float CHECKBOX_VERT_OFFSET_PARENT = 80f;
+        const float CHECKBOX_VERT_OFFSET_CHILD = 60f;
 
         const float KEYBIND_PARAGRAPH_VERT_OFFSET = 100f;
 
-        const float MINI_CHECKBOX_VERT_OFFSET = 50f;
         const float KEYBIND_VERT_OFFSET = 50f;
         const float SCROLL_BOTTOM_PADDING = 60f;
 
@@ -40,8 +39,6 @@ namespace FieldTrip
         const float KEYBIND_LENGTH = KEYBIND_HORIZONTAL_2ND_ROW_OFFSET - 50f;
         const float KEYBIND_DESC_HORIZONTAL_OFFSET = KEYBIND_HORIZONTAL_OFFSET - 10f;
         const float KEYBIND_DESC_VERTICAL_OFFSET = KEYBIND_HEIGHT;
-        const float IMAGE_TEXT_OFFSET = 30f;
-        const float CHECKBOX_IMAGE_OFFSET = -23f;
         const float DESC_OFFSET = 20f;
         const float VERT_POS_INIT = 550f;
         const float SCROLL_POS_INIT = 505f;
@@ -91,27 +88,32 @@ namespace FieldTrip
             }
             public UIelement[] MakeElement(ref float vert_pos)
             {
-                //if(!leftSide) return [];
                 float vertOffset = 0;
+
+                //constant offsets
+                float descHorzOffset = horzOffset + KEYBIND_DESC_HORIZONTAL_OFFSET;
+                float keyHorzOffset = KEYBIND_HORIZONTAL_OFFSET + horzOffset;
+                float descVertOffset = vert_pos + KEYBIND_DESC_VERTICAL_OFFSET;
+
                 elements = new UIelement[]
                 {
                     //TODO: Consolidate some of these for readability
                     new OpLabel(HORIZONTAL + horzOffset, vert_pos + (vertOffset -= KEYBIND_PARAGRAPH_VERT_OFFSET), title, true),
 
-                    new OpLabel(horzOffset + KEYBIND_DESC_HORIZONTAL_OFFSET, vert_pos + KEYBIND_DESC_VERTICAL_OFFSET + (vertOffset -= KEYBIND_VERT_OFFSET), "Keyboard", false),
-                    new OpKeyBinder(keyboard,new Vector2(KEYBIND_HORIZONTAL_OFFSET + horzOffset, vert_pos + vertOffset),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.AnyController),
+                    new OpLabel(descHorzOffset, descVertOffset + (vertOffset -= KEYBIND_VERT_OFFSET), "Keyboard", false),
+                    new OpKeyBinder(keyboard,new Vector2(keyHorzOffset, vert_pos + vertOffset),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.AnyController),
 
-                    new OpLabel(horzOffset + KEYBIND_DESC_HORIZONTAL_OFFSET, vert_pos  + KEYBIND_DESC_VERTICAL_OFFSET +  (vertOffset -= KEYBIND_VERT_OFFSET), "Controller 1", false),
-                    new OpKeyBinder(controller1,new Vector2(KEYBIND_HORIZONTAL_OFFSET + horzOffset, vert_pos + vertOffset),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.Controller1),
+                    new OpLabel(descHorzOffset, descVertOffset + (vertOffset -= KEYBIND_VERT_OFFSET), "Controller 1", false),
+                    new OpKeyBinder(controller1,new Vector2(keyHorzOffset, vert_pos + vertOffset),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller1),
 
-                    new OpLabel(horzOffset + KEYBIND_DESC_HORIZONTAL_OFFSET, vert_pos  + KEYBIND_DESC_VERTICAL_OFFSET +  (vertOffset -= KEYBIND_VERT_OFFSET), "Controller 2", false),
-                    new OpKeyBinder(controller2,new Vector2(KEYBIND_HORIZONTAL_OFFSET + horzOffset, vert_pos + vertOffset),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.Controller2),
+                    new OpLabel(descHorzOffset, descVertOffset + (vertOffset -= KEYBIND_VERT_OFFSET), "Controller 2", false),
+                    new OpKeyBinder(controller2,new Vector2(keyHorzOffset, vert_pos + vertOffset),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller2),
 
-                    new OpLabel(horzOffset + KEYBIND_DESC_HORIZONTAL_OFFSET, vert_pos  + KEYBIND_DESC_VERTICAL_OFFSET +  (vertOffset -= KEYBIND_VERT_OFFSET), "Controller 3", false),
-                    new OpKeyBinder(controller3,new Vector2(KEYBIND_HORIZONTAL_OFFSET + horzOffset, vert_pos + vertOffset),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.Controller3),
+                    new OpLabel(descHorzOffset, descVertOffset + (vertOffset -= KEYBIND_VERT_OFFSET), "Controller 3", false),
+                    new OpKeyBinder(controller3,new Vector2(keyHorzOffset, vert_pos + vertOffset),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller3),
 
-                    new OpLabel(horzOffset + KEYBIND_DESC_HORIZONTAL_OFFSET, vert_pos  + KEYBIND_DESC_VERTICAL_OFFSET +  (vertOffset -= KEYBIND_VERT_OFFSET), "Controller 4", false),
-                    new OpKeyBinder(controller4,new Vector2(KEYBIND_HORIZONTAL_OFFSET + horzOffset, vert_pos + vertOffset),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.Controller4),
+                    new OpLabel(descHorzOffset, descVertOffset + (vertOffset -= KEYBIND_VERT_OFFSET), "Controller 4", false),
+                    new OpKeyBinder(controller4,new Vector2(keyHorzOffset, vert_pos + vertOffset),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller4),
                 };
                 if (!preserveVertPos) vert_pos += vertOffset;
                 return elements;
@@ -125,8 +127,19 @@ namespace FieldTrip
             string key;
             string title;
             string desc;
+            bool disableChildrenFlag;
             bool disableChildren;
             bool greyedOut;
+
+            public enum childDisableStates
+            {
+                MANUAL,
+                INVERSE,
+                NONINVERSE
+            }
+
+            childDisableStates childDisableMode;
+            
 
             float vertOffset;
             float horiOffset;
@@ -144,6 +157,7 @@ namespace FieldTrip
                 
                 this.vertOffset = SCROLL_POS_INIT;
                 this.horiOffset = (parent != null) ? parent.horiOffset + HORIZONTAL_INDENT : 0;
+                this.childDisableMode = childDisableStates.NONINVERSE;
             }
 
             public Configurable<T> Get_Config()
@@ -160,13 +174,15 @@ namespace FieldTrip
                 if (this.title is null) this.title = "";
                 if (this.desc is null) this.desc = "";
 
+                float mainVertOffset = (this.parent == null)? CHECKBOX_VERT_OFFSET_PARENT : CHECKBOX_VERT_OFFSET_CHILD;
+
                 this.vertOffset = vert_pos;
                 if (type == typeof(bool))
                 {
                     Configurable<bool> option = config as Configurable<bool>;
                     elements = new UIelement[]
                     {
-                        new OpCheckBox(option, HORIZONTAL + horiOffset, vert_pos -= CHECKBOX_VERT_OFFSET),
+                        new OpCheckBox(option, HORIZONTAL + horiOffset, vert_pos -= mainVertOffset),
                         new OpLabel(CHECKBOX_LABEL_HORIZONTAL + horiOffset, vert_pos, this.title, true),
                         new OpLabel(CHECKBOX_LABEL_HORIZONTAL + horiOffset, vert_pos - DESC_OFFSET, this.desc, false),
                     };
@@ -178,7 +194,7 @@ namespace FieldTrip
                     {
                         // TODO: Standardize the offsets for children and text boxes
                         // rn we need an offset for text boxes, both vertical and horizontal
-                        new OpTextBox(option, new Vector2(HORIZONTAL + horiOffset, vert_pos -= MINI_CHECKBOX_VERT_OFFSET), NUM_INPUT_SIZE),
+                        new OpTextBox(option, new Vector2(HORIZONTAL + horiOffset, vert_pos -= mainVertOffset), NUM_INPUT_SIZE),
                         new OpLabel(TEXTBOX_LABEL_HORIZONTAL + NUM_INPUT_SIZE + horiOffset, vert_pos, this.title, true),
                         new OpLabel(TEXTBOX_LABEL_HORIZONTAL + NUM_INPUT_SIZE + horiOffset, vert_pos - DESC_OFFSET, this.desc, false),
                     };
@@ -186,14 +202,37 @@ namespace FieldTrip
                 return elements;
             }
 
-            public void Update(bool disableChildren = false)
+            public void SetDisableChildren(bool disableChildren)
             {
-                if (this.parent != null) this.greyedOut = this.parent.disableChildren;
                 this.disableChildren = disableChildren;
-                foreach(UIelement element in elements)
+            }
+            public void SetChildDisableMode(childDisableStates state)
+            {
+                this.childDisableMode = state;
+            }
+            public void Update()
+            {
+                T val = this.config.Value;
+                bool booleanVal = (val as bool?).Value; //get a proper boolean value for following switch statement
+
+                switch (childDisableMode)
+                {
+                    case childDisableStates.NONINVERSE:
+                        this.disableChildrenFlag = booleanVal;
+                        break;
+                    case childDisableStates.INVERSE:
+                        this.disableChildrenFlag = !booleanVal;
+                        break;
+                    default:
+                        this.disableChildrenFlag = this.disableChildren;
+                        break;
+                }
+
+                if (this.parent != null) this.greyedOut = this.parent.disableChildrenFlag;
+                foreach (UIelement element in elements)
                 {
                     UIconfig uiConfig = element as UIconfig;
-                    if(uiConfig != null) uiConfig.greyedOut = this.greyedOut;
+                    if (uiConfig != null) uiConfig.greyedOut = this.greyedOut;
 
                 }
             }
@@ -245,6 +284,7 @@ namespace FieldTrip
         #endregion
         public OptionsMenu(FieldTripMain plugin)
         {
+
             keepItemEnabledOption = new SlupfariOption<bool>(ref keepItemEnabled, "slugpupsafari_keepItemOnPickup_checkbox", true, this.config);
             artificerDontLaunchKidsOption = new SlupfariOption<bool>(ref artificerDontLaunchKids, "slugpupsafari_artificerdontlaunchkids_checkbox", true, this.config);
             noThrowPupsOption = new SlupfariOption<bool>(ref noThrowPups, "slugpupsafari_noThrowPups_checkbox", true, this.config);
@@ -415,7 +455,7 @@ namespace FieldTrip
 
             #endregion
 
-
+            #region mainConfigTab
             vert_pos = VERT_POS_INIT;
             mainConfigTab.AddItems(new UIelement[]
             {
@@ -435,8 +475,9 @@ namespace FieldTrip
                 ..maxStackOption.MakeElement(ref vert_pos)
             ]);
             mainConfigScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
+            #endregion
 
-
+            #region keepItemTab
             vert_pos = VERT_POS_INIT;
             keepItemTab.AddItems(new UIelement[]
             {
@@ -456,8 +497,9 @@ namespace FieldTrip
                 ..canDropForFoodOption.MakeElement(ref vert_pos)
             ]);
             keepItemScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
+            #endregion
 
-
+            #region creatureImmunityTab
             vert_pos = VERT_POS_INIT;
             creatureImmunityTab.AddItems(new UIelement[]
             {
@@ -471,41 +513,13 @@ namespace FieldTrip
                 ..mirosBirdProtectionOption.MakeElement(ref vert_pos)
             ]);
             creatureImmunityScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
+            #endregion
 
-
-            /*vert_pos = VERT_POS_INIT;
-            UIelement[] element4 = new UIelement[]
-            {
-                new OpLabel(TITLE_HORIZONTAL, vert_pos, "Controls", true),
-                new OpCheckBox(itemPassing, HORIZONTAL, vert_pos -= MINI_CHECKBOX_VERT_OFFSET),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Item Passing", true),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos + DESC_OFFSET, "(Allow passing items up and down the stack)", false),
-                new OpCheckBox(playerItemMoving, HORIZONTAL, vert_pos -= MINI_CHECKBOX_VERT_OFFSET),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos, "Move Player Items", true),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos + DESC_OFFSET, "(When disabled piggybacked players will be skipped)", false),
-                new OpLabel(HORIZONTAL, vert_pos-= 2* MINI_CHECKBOX_VERT_OFFSET, "Keyboard", true),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos-=LABEL_VERT_OFFSET, "Pass Up", true),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL+ KEYBIND_HORIZONTAL_OFFSET, vert_pos, "Pass Down", true),
-                new OpKeyBinder(upInputKB,new Vector2(CHECKBOX_LABEL_HORIZONTAL, vert_pos += KEYBIND_VERT_OFFSET),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.AnyController),
-                new OpKeyBinder(downInputKB,new Vector2(CHECKBOX_LABEL_HORIZONTAL + KEYBIND_HORIZONTAL_OFFSET, vert_pos),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.AnyController),
-                new OpLabel(HORIZONTAL, vert_pos-= MINI_CHECKBOX_VERT_OFFSET, "Controller", true),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL, vert_pos-=LABEL_VERT_OFFSET, "Pass Up", true),
-                new OpLabel(CHECKBOX_LABEL_HORIZONTAL+ KEYBIND_HORIZONTAL_OFFSET, vert_pos, "Pass Down", true),
-                new OpKeyBinder(upInputController1,new Vector2(CHECKBOX_LABEL_HORIZONTAL, vert_pos += KEYBIND_VERT_OFFSET),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.Controller1),
-                new OpKeyBinder(downInputController1,new Vector2(CHECKBOX_LABEL_HORIZONTAL + KEYBIND_HORIZONTAL_OFFSET, vert_pos),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.Controller1),
-                new OpKeyBinder(upInputController2,new Vector2(CHECKBOX_LABEL_HORIZONTAL, vert_pos += KEYBIND_VERT_OFFSET),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.Controller2),
-                new OpKeyBinder(downInputController2,new Vector2(CHECKBOX_LABEL_HORIZONTAL + KEYBIND_HORIZONTAL_OFFSET, vert_pos),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.Controller2),
-                new OpKeyBinder(upInputController3,new Vector2(CHECKBOX_LABEL_HORIZONTAL, vert_pos += KEYBIND_VERT_OFFSET),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.Controller3),
-                new OpKeyBinder(downInputController3,new Vector2(CHECKBOX_LABEL_HORIZONTAL + KEYBIND_HORIZONTAL_OFFSET, vert_pos),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.Controller3),
-                new OpKeyBinder(upInputController4,new Vector2(CHECKBOX_LABEL_HORIZONTAL, vert_pos += KEYBIND_VERT_OFFSET),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.Controller4),
-                new OpKeyBinder(downInputController4,new Vector2(CHECKBOX_LABEL_HORIZONTAL + KEYBIND_HORIZONTAL_OFFSET, vert_pos),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT),false, OpKeyBinder.BindController.Controller4),
-            };
-            itemPassingTab.AddItems(element4);*/
-
+            #region itemPassingTab
             vert_pos = VERT_POS_INIT;
             itemPassingTab.AddItems(new UIelement[]
             {
-                new OpLabel(TITLE_HORIZONTAL, vert_pos, "Controls", true),
+                new OpLabel(TITLE_HORIZONTAL, vert_pos, "Item Passing Controls", true),
                 itemPassingScroll
             });
             vert_pos = SCROLL_POS_INIT;
@@ -517,8 +531,9 @@ namespace FieldTrip
 
             ]);
             itemPassingScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
+            #endregion
 
-
+            #region sillinessTab
             vert_pos = VERT_POS_INIT;
             sillinessTab.AddItems(new UIelement[]
             {
@@ -530,8 +545,9 @@ namespace FieldTrip
                 ..bigHeadModeOption.MakeElement(ref vert_pos)
             ]);
             sillinessScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
+            #endregion
 
-
+            #region campaignSpecificTab
             vert_pos = VERT_POS_INIT;
             campaignSpecificTab.AddItems(new UIelement[]
             {
@@ -544,6 +560,7 @@ namespace FieldTrip
                 ..artiBombProtectionOption.MakeElement(ref vert_pos)
             ]);
             campaignSpecificScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
+            #endregion
 
         }
 
