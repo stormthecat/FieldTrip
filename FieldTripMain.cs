@@ -1205,7 +1205,7 @@ namespace FieldTrip
             //Debug.Log("PLAYER NUMBER: " + self.playerState.playerNumber + "'s GRAB UPDATE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
             //THAT NPC CHECK MUST NOT BE MOVED EVER OR YOU WILL FEEL TRUE PAIN
-            if (OptionsMenu.keepItemEnabled.Value&&OptionsMenu.itemPassing.Value&&!self.isNPC&&self.onBack==null)
+            if (OptionsMenu.keepItemEnabled.Value && OptionsMenu.itemPassing.Value && !self.isNPC && self.onBack==null)
             {
                 if (isUpPressed(self))
                 {

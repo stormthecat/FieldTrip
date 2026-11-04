@@ -55,11 +55,13 @@ namespace FieldTrip
         public class SlupfariKeyBind
         {
             string title;
-            Configurable<KeyCode> keyboard;
-            Configurable<KeyCode> controller1;
-            Configurable<KeyCode> controller2;
-            Configurable<KeyCode> controller3;
-            Configurable<KeyCode> controller4;
+            SlupfariOption<KeyCode> keyboard;
+            SlupfariOption<KeyCode> controller1;
+            SlupfariOption<KeyCode> controller2;
+            SlupfariOption<KeyCode> controller3;
+            SlupfariOption<KeyCode> controller4;
+
+
             bool leftSide;
             bool preserveVertPos;
             UIelement[] elements;
@@ -73,11 +75,11 @@ namespace FieldTrip
                 SlupfariOption<KeyCode> controller4,
                 bool leftSide, bool preserveVertPos)
             {
-                this.keyboard = keyboard.Get_Config();
-                this.controller1 = controller1.Get_Config();
-                this.controller2 = controller2.Get_Config();
-                this.controller3 = controller3.Get_Config();
-                this.controller4 = controller4.Get_Config();
+                this.keyboard = keyboard;
+                this.controller1 = controller1;
+                this.controller2 = controller2;
+                this.controller3 = controller3;
+                this.controller4 = controller4;
                 this.leftSide = leftSide; // has the actual keyboard/controller label
                 this.preserveVertPos = preserveVertPos;
                 this.horzOffset = (leftSide) ? 0 : KEYBIND_HORIZONTAL_2ND_ROW_OFFSET;
@@ -94,27 +96,37 @@ namespace FieldTrip
                 float descHorzOffset = horzOffset + KEYBIND_DESC_HORIZONTAL_OFFSET;
                 float keyHorzOffset = KEYBIND_HORIZONTAL_OFFSET + horzOffset;
                 float descVertOffset = vert_pos + KEYBIND_DESC_VERTICAL_OFFSET;
-
-                elements = new UIelement[]
-                {
+                elements = 
+                [
                     //TODO: Consolidate some of these for readability
-                    new OpLabel(HORIZONTAL + horzOffset, vert_pos + (vertOffset -= KEYBIND_PARAGRAPH_VERT_OFFSET), title, true),
+                    // also make them compatible with the options thing
+                    ..new UIelement[] {new OpLabel(HORIZONTAL + horzOffset, vert_pos + (vertOffset -= KEYBIND_PARAGRAPH_VERT_OFFSET), title, true) },
 
-                    new OpLabel(descHorzOffset, descVertOffset + (vertOffset -= KEYBIND_VERT_OFFSET), "Keyboard", false),
-                    new OpKeyBinder(keyboard,new Vector2(keyHorzOffset, vert_pos + vertOffset),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.AnyController),
+                    ..keyboard.OverrideElement([
+                        new OpKeyBinder(keyboard.Get_Config(),new Vector2(keyHorzOffset, vert_pos + (vertOffset -= KEYBIND_VERT_OFFSET)),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.AnyController),
+                        new OpLabel(descHorzOffset, descVertOffset + vertOffset, "Keyboard", false)
+                        ]),
 
-                    new OpLabel(descHorzOffset, descVertOffset + (vertOffset -= KEYBIND_VERT_OFFSET), "Controller 1", false),
-                    new OpKeyBinder(controller1,new Vector2(keyHorzOffset, vert_pos + vertOffset),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller1),
+                    ..controller1.OverrideElement([
+                        new OpKeyBinder(controller1.Get_Config(),new Vector2(keyHorzOffset, vert_pos + (vertOffset -= KEYBIND_VERT_OFFSET)),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller1),
+                        new OpLabel(descHorzOffset, descVertOffset + vertOffset, "Controller 1", false),
+                        ]),
 
-                    new OpLabel(descHorzOffset, descVertOffset + (vertOffset -= KEYBIND_VERT_OFFSET), "Controller 2", false),
-                    new OpKeyBinder(controller2,new Vector2(keyHorzOffset, vert_pos + vertOffset),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller2),
+                    ..controller2.OverrideElement([
+                        new OpKeyBinder(controller2.Get_Config(),new Vector2(keyHorzOffset, vert_pos + (vertOffset -= KEYBIND_VERT_OFFSET)),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller2),
+                        new OpLabel(descHorzOffset, descVertOffset + vertOffset, "Controller 2", false),
+                        ]),
 
-                    new OpLabel(descHorzOffset, descVertOffset + (vertOffset -= KEYBIND_VERT_OFFSET), "Controller 3", false),
-                    new OpKeyBinder(controller3,new Vector2(keyHorzOffset, vert_pos + vertOffset),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller3),
+                     ..controller3.OverrideElement([
+                        new OpKeyBinder(controller3.Get_Config(),new Vector2(keyHorzOffset, vert_pos + (vertOffset -= KEYBIND_VERT_OFFSET)),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller3),
+                        new OpLabel(descHorzOffset, descVertOffset + vertOffset, "Controller 3", false),
+                        ]),
 
-                    new OpLabel(descHorzOffset, descVertOffset + (vertOffset -= KEYBIND_VERT_OFFSET), "Controller 4", false),
-                    new OpKeyBinder(controller4,new Vector2(keyHorzOffset, vert_pos + vertOffset),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller4),
-                };
+                    ..controller4.OverrideElement([
+                        new OpKeyBinder(controller4.Get_Config(),new Vector2(keyHorzOffset, vert_pos + (vertOffset -= KEYBIND_VERT_OFFSET)),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller4),
+                        new OpLabel(descHorzOffset, descVertOffset + vertOffset, "Controller 4", false),
+                        ]),
+                ];
                 if (!preserveVertPos) vert_pos += vertOffset;
                 return elements;
 
@@ -133,7 +145,7 @@ namespace FieldTrip
             string desc;
             bool disableChildrenFlag;
             bool disableChildren;
-            bool greyedOut;
+            bool disabled;
 
             public enum childDisableStates
             {
@@ -171,6 +183,13 @@ namespace FieldTrip
                 this.title = title;
                 this.desc = desc;
             }
+            public UIelement[] OverrideElement(UIelement[] customElements)
+            {
+                /*****    Uiconfig is expected to go first, if you don't put it first I will tell your mom    *****/
+                this.elements = customElements;
+                PopulateLabelBumpBehav();
+                return customElements;
+            }
             public UIelement[] MakeElement(ref float vert_pos)
             {
                 if (this.title is null) this.title = "";
@@ -179,6 +198,8 @@ namespace FieldTrip
                 float mainVertOffset = (this.parent == null)? CHECKBOX_VERT_OFFSET_PARENT : CHECKBOX_VERT_OFFSET_CHILD;
 
                 this.vertOffset = vert_pos;
+
+
                 if (type == typeof(bool))
                 {
                     Configurable<bool> option = config as Configurable<bool>;
@@ -194,14 +215,27 @@ namespace FieldTrip
                     Configurable<int> option = config as Configurable<int>;
                     elements = new UIelement[]
                     {
-                        // TODO: Standardize the offsets for children and text boxes
-                        // rn we need an offset for text boxes, both vertical and horizontal
                         new OpTextBox(option, new Vector2(HORIZONTAL + horiOffset, vert_pos -= mainVertOffset), NUM_INPUT_SIZE),
                         new OpLabel(TEXTBOX_LABEL_HORIZONTAL + NUM_INPUT_SIZE + horiOffset, vert_pos, this.title, true),
                         new OpLabel(TEXTBOX_LABEL_HORIZONTAL + NUM_INPUT_SIZE + horiOffset, vert_pos - DESC_OFFSET, this.desc, false),
                     };
                 }
+                PopulateLabelBumpBehav();
                 return elements;
+            }
+
+            private void PopulateLabelBumpBehav()
+            {
+                /*****    Uiconfig is expected to go first    *****/
+                if (elements == null || elements.Length == 0 || elements[0] is not UIconfig)
+                    return;
+                BumpBehaviour bumpBehav = (elements[0] as UIconfig).bumpBehav;
+                for(int i = 0; i < elements.Length; i++)
+                {
+                    if (elements[i] is OpLabel) (elements[i] as OpLabel).bumpBehav = bumpBehav;
+                    //elements[i].description = "IF YOU\'RE READING THIS I FORGOT TO REPLACE THE PLACEHOLDER TEXT";
+                    elements[i].description = "OPTION_ID: " + this.key;
+                }
             }
 
             public void SetDisableChildren(bool disableChildren)
@@ -214,7 +248,8 @@ namespace FieldTrip
             }
             public void Update()
             {
-                bool booleanVal = (this.config.Value as bool?).GetValueOrDefault(); //get a proper boolean value for following switch statement
+                string value = (elements == null) ? "" : (elements.FirstOrDefault() as UIconfig)?.value; //get boolean switch
+                bool booleanVal = value != null && value == "true";
 
                 switch (childDisableMode)
                 {
@@ -229,13 +264,20 @@ namespace FieldTrip
                         break;
                 }
 
-                if (this.parent != null) this.greyedOut = this.parent.disableChildrenFlag;
+                if (this.parent != null) 
+                {
+                    this.disableChildrenFlag = this.disableChildrenFlag | this.parent.disableChildrenFlag;
+                    this.disabled = this.parent.disableChildrenFlag;
+                }
                 if(elements is not null)
                 {
                     foreach (UIelement element in elements)
                     {
                         UIconfig uiConfig = element as UIconfig;
-                        if (uiConfig != null) uiConfig.greyedOut = this.greyedOut;
+                        OpLabel opLabel = element as OpLabel;
+                        if (uiConfig != null) uiConfig.greyedOut = this.disabled;
+                        else if (opLabel != null && opLabel.bumpBehav != null) opLabel.label.color = this.disabled ? opLabel.bumpBehav.GetColor(opLabel.color) : opLabel.color;
+
                     }
                 }
             }
@@ -244,45 +286,45 @@ namespace FieldTrip
 
         #region OptionDeclarations
 
-        SlupfariOption<bool> keepItemEnabledOption;
-        SlupfariOption<bool> artificerDontLaunchKidsOption;
-        SlupfariOption<bool> noThrowPupsOption;
-        SlupfariOption<bool> pupImpactCushionOption;
-        SlupfariOption<bool> allowGrabbingFoodOption;
-        SlupfariOption<bool> allowGrabbingNoodlefliesOption;
-        SlupfariOption<bool> allowGrabbingCentipedesOption;
-        SlupfariOption<bool> allowGrabbing5PNeuronsOption;
-        SlupfariOption<bool> allowGrabbingShroomsOption;
-        SlupfariOption<bool> allowGrabbingKarmaFlowersOption;
-        SlupfariOption<bool> allowGrabbingTardigradesOption;
-        SlupfariOption<bool> preventDraggingVinesOption;
-        SlupfariOption<bool> allowBackspearOption;
-        SlupfariOption<bool> leechProtectionOption;
-        SlupfariOption<bool> coalescipedeProtectionOption;
-        SlupfariOption<bool> canDropForFoodOption;
-        SlupfariOption<int> maxPupSliderOption;
-        SlupfariOption<bool> infinitePupStackOption;
-        SlupfariOption<KeyCode> upInputController1Option;
-        SlupfariOption<KeyCode> downInputController1Option;
-        SlupfariOption<KeyCode> upInputController2Option;
-        SlupfariOption<KeyCode> downInputController2Option;
-        SlupfariOption<KeyCode> upInputController3Option;
-        SlupfariOption<KeyCode> downInputController3Option;
-        SlupfariOption<KeyCode> upInputController4Option;
-        SlupfariOption<KeyCode> downInputController4Option;
-        SlupfariOption<KeyCode> upInputKBOption;
-        SlupfariOption<KeyCode> downInputKBOption;
-        SlupfariOption<bool> itemPassingOption;
-        SlupfariOption<bool> playerItemMovingOption;
-        SlupfariOption<bool> rivDrownProtectionOption;
-        SlupfariOption<bool> artiBombProtectionOption;
-        SlupfariOption<bool> bigHeadModeOption;
-        SlupfariOption<bool> stunProtectionOption;
-        SlupfariOption<int> maxStackOption;
-        SlupfariOption<bool> mirosBirdProtectionOption;
-        SlupfariOption<bool> killzoneProtectionOption;
-        SlupfariKeyBind passUpKeyBind;
-        SlupfariKeyBind passDownKeyBind;
+        public SlupfariOption<bool> keepItemEnabledOption;
+        public SlupfariOption<bool> artificerDontLaunchKidsOption;
+        public SlupfariOption<bool> noThrowPupsOption;
+        public SlupfariOption<bool> pupImpactCushionOption;
+        public SlupfariOption<bool> allowGrabbingFoodOption;
+        public SlupfariOption<bool> allowGrabbingNoodlefliesOption;
+        public SlupfariOption<bool> allowGrabbingCentipedesOption;
+        public SlupfariOption<bool> allowGrabbing5PNeuronsOption;
+        public SlupfariOption<bool> allowGrabbingShroomsOption;
+        public SlupfariOption<bool> allowGrabbingKarmaFlowersOption;
+        public SlupfariOption<bool> allowGrabbingTardigradesOption;
+        public SlupfariOption<bool> preventDraggingVinesOption;
+        public SlupfariOption<bool> allowBackspearOption;
+        public SlupfariOption<bool> leechProtectionOption;
+        public SlupfariOption<bool> coalescipedeProtectionOption;
+        public SlupfariOption<bool> canDropForFoodOption;
+        public SlupfariOption<int> maxPupSliderOption;
+        public SlupfariOption<bool> infinitePupStackOption;
+        public SlupfariOption<KeyCode> upInputController1Option;
+        public SlupfariOption<KeyCode> downInputController1Option;
+        public SlupfariOption<KeyCode> upInputController2Option;
+        public SlupfariOption<KeyCode> downInputController2Option;
+        public SlupfariOption<KeyCode> upInputController3Option;
+        public SlupfariOption<KeyCode> downInputController3Option;
+        public SlupfariOption<KeyCode> upInputController4Option;
+        public SlupfariOption<KeyCode> downInputController4Option;
+        public SlupfariOption<KeyCode> upInputKBOption;
+        public SlupfariOption<KeyCode> downInputKBOption;
+        public SlupfariOption<bool> itemPassingOption;
+        public SlupfariOption<bool> playerItemMovingOption;
+        public SlupfariOption<bool> rivDrownProtectionOption;
+        public SlupfariOption<bool> artiBombProtectionOption;
+        public SlupfariOption<bool> bigHeadModeOption;
+        public SlupfariOption<bool> stunProtectionOption;
+        public SlupfariOption<int> maxStackOption;
+        public SlupfariOption<bool> mirosBirdProtectionOption;
+        public SlupfariOption<bool> killzoneProtectionOption;
+        public SlupfariKeyBind passUpKeyBind;
+        public SlupfariKeyBind passDownKeyBind;
         #endregion
         SlupfariOptionInterface[] optionUpdateList;
         public OptionsMenu(FieldTripMain plugin)
@@ -329,6 +371,8 @@ namespace FieldTrip
             };
             passUpKeyBind = new SlupfariKeyBind(upInputKBOption, upInputController1Option, upInputController2Option, upInputController3Option, upInputController4Option, true, true);
             passDownKeyBind = new SlupfariKeyBind(downInputKBOption, downInputController1Option, downInputController2Option, downInputController3Option, downInputController4Option, false, false);
+
+            infinitePupStackOption.SetChildDisableMode(SlupfariOption<bool>.childDisableStates.INVERSE);
         }
         public override void Initialize()
         {
