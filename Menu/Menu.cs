@@ -1,12 +1,10 @@
-﻿using System;
-using System.Linq;
-using UnityEngine;
+﻿using UnityEngine;
 using Menu.Remix.MixedUI;
 
 
 namespace FieldTrip
 {
-    public class OptionsMenu : OptionInterface
+    public partial class OptionsMenu : OptionInterface
     {
         #region Constants
         //horizontal
@@ -41,288 +39,94 @@ namespace FieldTrip
 
         Vector2 SCROLL_POS = new(10f, 10f);
         Vector2 SCROLL_SIZE = new(580f, 500f);
+
         #endregion
 
-        public class SlupfariKeyBind
-        {
-            string title;
-            SlupfariOption<KeyCode> keyboard;
-            SlupfariOption<KeyCode> controller1;
-            SlupfariOption<KeyCode> controller2;
-            SlupfariOption<KeyCode> controller3;
-            SlupfariOption<KeyCode> controller4;
-
-
-            bool leftSide;
-            bool preserveVertPos;
-            UIelement[] elements;
-            float horzOffset;
-
-            public SlupfariKeyBind(
-                SlupfariOption<KeyCode> keyboard,
-                SlupfariOption<KeyCode> controller1,
-                SlupfariOption<KeyCode> controller2,
-                SlupfariOption<KeyCode> controller3,
-                SlupfariOption<KeyCode> controller4,
-                bool leftSide, bool preserveVertPos)
-            {
-                this.keyboard = keyboard;
-                this.controller1 = controller1;
-                this.controller2 = controller2;
-                this.controller3 = controller3;
-                this.controller4 = controller4;
-                this.leftSide = leftSide; // has the actual keyboard/controller label
-                this.preserveVertPos = preserveVertPos;
-                this.horzOffset = (leftSide) ? 0 : KEYBIND_HORIZONTAL_2ND_ROW_OFFSET;
-            }
-            public void AddText(string title = "")
-            {
-                this.title = title;
-            }
-            public UIelement[] MakeElement(ref float vert_pos)
-            {
-                float vertOffset = 0;
-
-                //constant offsets
-                float descHorzOffset = horzOffset + KEYBIND_DESC_HORIZONTAL_OFFSET;
-                float keyHorzOffset = KEYBIND_HORIZONTAL_OFFSET + horzOffset;
-                float descVertOffset = vert_pos + KEYBIND_DESC_VERTICAL_OFFSET;
-                elements = 
-                [
-                    ..new UIelement[] {new OpLabel(HORIZONTAL + horzOffset, vert_pos + (vertOffset -= KEYBIND_PARAGRAPH_VERT_OFFSET), title, true) },
-
-                    ..keyboard.OverrideElement([
-                        new OpKeyBinder(keyboard.GetConfig(),new Vector2(keyHorzOffset, vert_pos + (vertOffset -= KEYBIND_VERT_OFFSET)),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.AnyController),
-                        new OpLabel(descHorzOffset, descVertOffset + vertOffset, "Keyboard", false)
-                        ]),
-
-                    ..controller1.OverrideElement([
-                        new OpKeyBinder(controller1.GetConfig(),new Vector2(keyHorzOffset, vert_pos + (vertOffset -= KEYBIND_VERT_OFFSET)),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller1),
-                        new OpLabel(descHorzOffset, descVertOffset + vertOffset, "Controller 1", false),
-                        ]),
-
-                    ..controller2.OverrideElement([
-                        new OpKeyBinder(controller2.GetConfig(),new Vector2(keyHorzOffset, vert_pos + (vertOffset -= KEYBIND_VERT_OFFSET)),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller2),
-                        new OpLabel(descHorzOffset, descVertOffset + vertOffset, "Controller 2", false),
-                        ]),
-
-                     ..controller3.OverrideElement([
-                        new OpKeyBinder(controller3.GetConfig(),new Vector2(keyHorzOffset, vert_pos + (vertOffset -= KEYBIND_VERT_OFFSET)),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller3),
-                        new OpLabel(descHorzOffset, descVertOffset + vertOffset, "Controller 3", false),
-                        ]),
-
-                    ..controller4.OverrideElement([
-                        new OpKeyBinder(controller4.GetConfig(),new Vector2(keyHorzOffset, vert_pos + (vertOffset -= KEYBIND_VERT_OFFSET)),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller4),
-                        new OpLabel(descHorzOffset, descVertOffset + vertOffset, "Controller 4", false),
-                        ]),
-                ];
-                if (!preserveVertPos) vert_pos += vertOffset;
-                return elements;
-
-            }
-        }
         interface SlupfariOptionInterface
         {
             void Update();
-        }
-        public class SlupfariOption<T> : SlupfariOptionInterface
-        {
-            Configurable<T> config;
-            Type type;
-            string key;
-            string title;
-            string desc;
-            bool disableChildrenFlag;
-            bool disableChildren;
-            bool disabled;
-
-            public enum childDisableStates
-            {
-                MANUAL,
-                INVERSE,
-                NONINVERSE
-            }
-            childDisableStates childDisableMode;
-            
-            float vertOffset;
-            float horiOffset;
-            SlupfariOption<bool> parent;
-
-            UIelement[] elements;
-
-            public SlupfariOption(ref Configurable<T> config, string key, T defaultVal, ConfigHolder configHolder, SlupfariOption<bool> parent=null)
-            {
-                this.type = typeof(T);
-                this.key = key;
-                config = configHolder.Bind<T>(key, defaultVal);
-                this.config = config;
-                this.parent = parent;
-                
-                this.vertOffset = SCROLL_POS_INIT;
-                this.horiOffset = (parent != null) ? parent.horiOffset + HORIZONTAL_INDENT : 0;
-                this.childDisableMode = childDisableStates.NONINVERSE;
-            }
-            public T GetValue()
-            {
-                T value = config.Value;
-                if (value is bool)
-                {
-                    bool val = (bool)(object)value & !this.disabled;
-                    return (T)(object)val;
-                }
-                return value;
-            }
-
-            public Configurable<T> GetConfig()
-            {
-                return this.config;
-            }
-            public void AddText(string title, string desc = "")
-            {
-                this.title = title;
-                this.desc = desc;
-            }
-            public UIelement[] OverrideElement(UIelement[] customElements)
-            {
-                /*****    Uiconfig is expected to go first, if you don't put it first I will tell your mom    *****/
-                this.elements = customElements;
-                PopulateLabelBumpBehav();
-                return customElements;
-            }
-            public UIelement[] MakeElement(ref float vert_pos)
-            {
-                if (this.title is null) this.title = "";
-                if (this.desc is null) this.desc = "";
-
-                float mainVertOffset = (this.parent == null)? CHECKBOX_VERT_OFFSET_PARENT : CHECKBOX_VERT_OFFSET_CHILD;
-
-                this.vertOffset = vert_pos;
-
-
-                if (type == typeof(bool))
-                {
-                    Configurable<bool> option = config as Configurable<bool>;
-                    elements = new UIelement[]
-                    {
-                        new OpCheckBox(option, HORIZONTAL + horiOffset, vert_pos -= mainVertOffset),
-                        new OpLabel(CHECKBOX_LABEL_HORIZONTAL + horiOffset, vert_pos, this.title, true),
-                        new OpLabel(CHECKBOX_LABEL_HORIZONTAL + horiOffset, vert_pos - DESC_OFFSET, this.desc, false),
-                    };
-                }
-                else if (type == typeof(int))
-                {
-                    Configurable<int> option = config as Configurable<int>;
-                    elements = new UIelement[]
-                    {
-                        new OpTextBox(option, new Vector2(HORIZONTAL + horiOffset, vert_pos -= mainVertOffset), NUM_INPUT_SIZE),
-                        new OpLabel(TEXTBOX_LABEL_HORIZONTAL + NUM_INPUT_SIZE + horiOffset, vert_pos, this.title, true),
-                        new OpLabel(TEXTBOX_LABEL_HORIZONTAL + NUM_INPUT_SIZE + horiOffset, vert_pos - DESC_OFFSET, this.desc, false),
-                    };
-                }
-                PopulateLabelBumpBehav();
-                return elements;
-            }
-
-            private void PopulateLabelBumpBehav()
-            {
-                /*****    Uiconfig is expected to go first    *****/
-                if (elements == null || elements.Length == 0 || elements[0] is not UIconfig)
-                    return;
-                BumpBehaviour bumpBehav = (elements[0] as UIconfig).bumpBehav;
-                for(int i = 0; i < elements.Length; i++)
-                {
-                    if (elements[i] is OpLabel) (elements[i] as OpLabel).bumpBehav = bumpBehav;
-                    elements[i].description = "OPTION_ID: " + this.key;
-                }
-            }
-
-            public void SetDisableChildren(bool disableChildren)
-            {
-                this.disableChildren = disableChildren;
-            }
-            public void SetChildDisableMode(childDisableStates state)
-            {
-                this.childDisableMode = state;
-            }
-            public void Update()
-            {
-                string value = (elements == null) ? "" : (elements.FirstOrDefault() as UIconfig)?.value; //get boolean switch
-                bool booleanVal = value != null && value == "true";
-
-                switch (childDisableMode)
-                {
-                    case childDisableStates.NONINVERSE:
-                        this.disableChildrenFlag = !booleanVal;
-                        break;
-                    case childDisableStates.INVERSE:
-                        this.disableChildrenFlag = booleanVal;
-                        break;
-                    default:
-                        this.disableChildrenFlag = this.disableChildren;
-                        break;
-                }
-
-                if (this.parent != null) 
-                {
-                    this.disableChildrenFlag = this.disableChildrenFlag | this.parent.disableChildrenFlag;
-                    this.disabled = this.parent.disableChildrenFlag;
-                }
-                if(elements is not null)
-                {
-                    foreach (UIelement element in elements)
-                    {
-                        UIconfig uiConfig = element as UIconfig;
-                        OpLabel opLabel = element as OpLabel;
-                        if (uiConfig != null) uiConfig.greyedOut = this.disabled;
-                        else if (opLabel != null && opLabel.bumpBehav != null) opLabel.label.color = this.disabled ? opLabel.bumpBehav.GetColor(opLabel.color) : opLabel.color;
-
-                    }
-                }
-            }
-
         }
 
         #region OptionDeclarations
 
         public static SlupfariOption<bool> keepItemEnabledOption;
+        static Configurable<bool> keepItemEnabled;
         public static SlupfariOption<bool> artificerDontLaunchKidsOption;
+        static Configurable<bool> artificerDontLaunchKids;
         public static SlupfariOption<bool> noThrowPupsOption;
+        static Configurable<bool> noThrowPups;
         public static SlupfariOption<bool> pupImpactCushionOption;
+        static Configurable<bool> pupImpactCushion;
         public static SlupfariOption<bool> allowGrabbingFoodOption;
+        static Configurable<bool> allowGrabbingFood;
         public static SlupfariOption<bool> allowGrabbingNoodlefliesOption;
+        static Configurable<bool> allowGrabbingNoodleflies;
         public static SlupfariOption<bool> allowGrabbingCentipedesOption;
+        static Configurable<bool> allowGrabbingCentipedes;
         public static SlupfariOption<bool> allowGrabbing5PNeuronsOption;
+        static Configurable<bool> allowGrabbing5PNeurons;
         public static SlupfariOption<bool> allowGrabbingShroomsOption;
+        static Configurable<bool> allowGrabbingShrooms;
         public static SlupfariOption<bool> allowGrabbingKarmaFlowersOption;
+        static Configurable<bool> allowGrabbingKarmaFlowers;
         public static SlupfariOption<bool> allowGrabbingTardigradesOption;
+        static Configurable<bool> allowGrabbingTardigrades;
         public static SlupfariOption<bool> preventDraggingVinesOption;
+        static Configurable<bool> preventDraggingVines;
         public static SlupfariOption<bool> allowBackspearOption;
+        static Configurable<bool> allowBackspear;
         public static SlupfariOption<bool> leechProtectionOption;
+        static Configurable<bool> leechProtection;
         public static SlupfariOption<bool> coalescipedeProtectionOption;
+        static Configurable<bool> coalescipedeProtection;
         public static SlupfariOption<bool> canDropForFoodOption;
+        static Configurable<bool> canDropForFood;
         public static SlupfariOption<int> maxPupSliderOption;
+        static Configurable<int> maxPupSlider;
         public static SlupfariOption<bool> infinitePupStackOption;
+        static Configurable<bool> infinitePupStack;
         public static SlupfariOption<KeyCode> upInputController1Option;
+        static Configurable<KeyCode> upInputController1;
         public static SlupfariOption<KeyCode> downInputController1Option;
+        static Configurable<KeyCode> downInputController1;
         public static SlupfariOption<KeyCode> upInputController2Option;
+        static Configurable<KeyCode> upInputController2;
         public static SlupfariOption<KeyCode> downInputController2Option;
+        static Configurable<KeyCode> downInputController2;
         public static SlupfariOption<KeyCode> upInputController3Option;
+        static Configurable<KeyCode> upInputController3;
         public static SlupfariOption<KeyCode> downInputController3Option;
+        static Configurable<KeyCode> downInputController3;
         public static SlupfariOption<KeyCode> upInputController4Option;
+        static Configurable<KeyCode> upInputController4;
         public static SlupfariOption<KeyCode> downInputController4Option;
+        static Configurable<KeyCode> downInputController4;
         public static SlupfariOption<KeyCode> upInputKBOption;
+        static Configurable<KeyCode> upInputKB;
         public static SlupfariOption<KeyCode> downInputKBOption;
+        static Configurable<KeyCode> downInputKB;
         public static SlupfariOption<bool> itemPassingOption;
+        static Configurable<bool> itemPassing;
         public static SlupfariOption<bool> playerItemMovingOption;
+        static Configurable<bool> playerItemMoving;
         public static SlupfariOption<bool> rivDrownProtectionOption;
+        static Configurable<bool> rivDrownProtection;
         public static SlupfariOption<bool> artiBombProtectionOption;
+        static Configurable<bool> artiBombProtection;
         public static SlupfariOption<bool> bigHeadModeOption;
+        static Configurable<bool> bigHeadMode;
         public static SlupfariOption<bool> stunProtectionOption;
+        static Configurable<bool> stunProtection;
         public static SlupfariOption<int> maxStackOption;
+        static Configurable<int> maxStack;
         public static SlupfariOption<bool> mirosBirdProtectionOption;
+        static Configurable<bool> mirosBirdProtection;
         public static SlupfariOption<bool> killzoneProtectionOption;
+        static Configurable<bool> killzoneProtection;
+
         public static SlupfariKeyBind passUpKeyBind;
         public static SlupfariKeyBind passDownKeyBind;
+
         #endregion
         SlupfariOptionInterface[] optionUpdateList;
         public OptionsMenu(FieldTripMain plugin)
@@ -372,10 +176,10 @@ namespace FieldTrip
 
             infinitePupStackOption.SetChildDisableMode(SlupfariOption<bool>.childDisableStates.INVERSE);
         }
+
         public override void Initialize()
         {
             float vert_pos = VERT_POS_INIT;
-
 
             base.Initialize();
             OpTab mainConfigTab = new OpTab(this, "Main Config");
@@ -391,12 +195,124 @@ namespace FieldTrip
             OpTab campaignSpecificTab = new OpTab(this, "Campaign Specific");
             OpScrollBox campaignSpecificScroll = new OpScrollBox(SCROLL_POS, SCROLL_SIZE, SCROLL_CONTENT_SIZE, false, true, true);
 
-
             this.Tabs = new OpTab[]
             {
                 mainConfigTab, campaignSpecificTab, keepItemTab, creatureImmunityTab, itemPassingTab, sillinessTab
             };
 
+            AddDescriptions();
+
+            #region mainConfigTab
+            vert_pos = VERT_POS_INIT;
+            mainConfigTab.AddItems(new UIelement[]
+            {
+                new OpLabel(TITLE_HORIZONTAL, vert_pos, "Slugpup Safari Options", true),
+                mainConfigScroll
+            });
+            vert_pos = SCROLL_POS_INIT;
+            mainConfigScroll.AddItems([
+                ..noThrowPupsOption.MakeElement(ref vert_pos),
+                ..allowBackspearOption.MakeElement(ref vert_pos),
+                ..artificerDontLaunchKidsOption.MakeElement(ref vert_pos),
+                ..pupImpactCushionOption.MakeElement(ref vert_pos),
+                ..preventDraggingVinesOption.MakeElement(ref vert_pos),
+                ..stunProtectionOption.MakeElement(ref vert_pos),
+                ..killzoneProtectionOption.MakeElement(ref vert_pos),
+                ..infinitePupStackOption.MakeElement(ref vert_pos),
+                ..maxStackOption.MakeElement(ref vert_pos)
+            ]);
+            mainConfigScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
+            #endregion
+
+            #region keepItemTab
+            vert_pos = VERT_POS_INIT;
+            keepItemTab.AddItems(new UIelement[]
+            {
+                new OpLabel(TITLE_HORIZONTAL, vert_pos, "Slugpup Grab Options", true),
+                keepItemScroll
+            });
+            vert_pos = SCROLL_POS_INIT;
+            keepItemScroll.AddItems([
+                ..keepItemEnabledOption.MakeElement(ref vert_pos),
+                ..allowGrabbingFoodOption.MakeElement(ref vert_pos),
+                ..allowGrabbingNoodlefliesOption.MakeElement(ref vert_pos),
+                ..allowGrabbingCentipedesOption.MakeElement(ref vert_pos),
+                ..allowGrabbingTardigradesOption.MakeElement(ref vert_pos),
+                ..allowGrabbing5PNeuronsOption.MakeElement(ref vert_pos),
+                ..allowGrabbingShroomsOption.MakeElement(ref vert_pos),
+                ..allowGrabbingKarmaFlowersOption.MakeElement(ref vert_pos),
+                ..canDropForFoodOption.MakeElement(ref vert_pos)
+            ]);
+            keepItemScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
+            #endregion
+
+            #region creatureImmunityTab
+            vert_pos = VERT_POS_INIT;
+            creatureImmunityTab.AddItems(new UIelement[]
+            {
+                new OpLabel(TITLE_HORIZONTAL, vert_pos, "Creature Protection Options", true),
+                creatureImmunityScroll
+            });
+            vert_pos = SCROLL_POS_INIT;
+            creatureImmunityScroll.AddItems([
+                ..leechProtectionOption.MakeElement(ref vert_pos),
+                ..coalescipedeProtectionOption.MakeElement(ref vert_pos),
+                ..mirosBirdProtectionOption.MakeElement(ref vert_pos)
+            ]);
+            creatureImmunityScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
+            #endregion
+
+            #region itemPassingTab
+            vert_pos = VERT_POS_INIT;
+            itemPassingTab.AddItems(new UIelement[]
+            {
+                new OpLabel(TITLE_HORIZONTAL, vert_pos, "Item Passing Controls", true),
+                itemPassingScroll
+            });
+            vert_pos = SCROLL_POS_INIT;
+            itemPassingScroll.AddItems([
+                ..itemPassingOption.MakeElement(ref vert_pos),
+                ..playerItemMovingOption.MakeElement(ref vert_pos),
+                ..passUpKeyBind.MakeElement(ref vert_pos),
+                ..passDownKeyBind.MakeElement(ref vert_pos)
+
+            ]);
+            itemPassingScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
+            #endregion
+
+            #region sillinessTab
+            vert_pos = VERT_POS_INIT;
+            sillinessTab.AddItems(new UIelement[]
+            {
+                new OpLabel(TITLE_HORIZONTAL, vert_pos, "Silliness", true),
+                sillinessScroll
+            });
+            vert_pos = SCROLL_POS_INIT;
+            sillinessScroll.AddItems([
+                ..bigHeadModeOption.MakeElement(ref vert_pos)
+            ]);
+            sillinessScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
+            #endregion
+
+            #region campaignSpecificTab
+            vert_pos = VERT_POS_INIT;
+            campaignSpecificTab.AddItems(new UIelement[]
+            {
+                new OpLabel(TITLE_HORIZONTAL, vert_pos, "Campaign Specific", true),
+                campaignSpecificScroll
+            });
+            vert_pos = SCROLL_POS_INIT;
+            campaignSpecificScroll.AddItems([
+                ..rivDrownProtectionOption.MakeElement(ref vert_pos),
+                ..artiBombProtectionOption.MakeElement(ref vert_pos)
+            ]);
+            campaignSpecificScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
+            #endregion
+
+        }
+
+        private static void AddDescriptions()
+        {
             #region OptionText
             keepItemEnabledOption.AddText(
                 "Keep Items on Pickup",
@@ -501,114 +417,6 @@ namespace FieldTrip
             passDownKeyBind.AddText("Pass Down");
 
             #endregion
-
-            #region mainConfigTab
-            vert_pos = VERT_POS_INIT;
-            mainConfigTab.AddItems(new UIelement[]
-            {
-                new OpLabel(TITLE_HORIZONTAL, vert_pos, "Slugpup Safari Options", true),
-                mainConfigScroll
-            });
-            vert_pos = SCROLL_POS_INIT;
-            mainConfigScroll.AddItems([ 
-                ..noThrowPupsOption.MakeElement(ref vert_pos),
-                ..allowBackspearOption.MakeElement(ref vert_pos),
-                ..artificerDontLaunchKidsOption.MakeElement(ref vert_pos),
-                ..pupImpactCushionOption.MakeElement(ref vert_pos),
-                ..preventDraggingVinesOption.MakeElement(ref vert_pos),
-                ..stunProtectionOption.MakeElement(ref vert_pos),
-                ..killzoneProtectionOption.MakeElement(ref vert_pos),
-                ..infinitePupStackOption.MakeElement(ref vert_pos),
-                ..maxStackOption.MakeElement(ref vert_pos)
-            ]);
-            mainConfigScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
-            #endregion
-
-            #region keepItemTab
-            vert_pos = VERT_POS_INIT;
-            keepItemTab.AddItems(new UIelement[]
-            {
-                new OpLabel(TITLE_HORIZONTAL, vert_pos, "Slugpup Grab Options", true),
-                keepItemScroll
-            });
-            vert_pos = SCROLL_POS_INIT;
-            keepItemScroll.AddItems([
-                ..keepItemEnabledOption.MakeElement(ref vert_pos),
-                ..allowGrabbingFoodOption.MakeElement(ref vert_pos),
-                ..allowGrabbingNoodlefliesOption.MakeElement(ref vert_pos),
-                ..allowGrabbingCentipedesOption.MakeElement(ref vert_pos),
-                ..allowGrabbingTardigradesOption.MakeElement(ref vert_pos),
-                ..allowGrabbing5PNeuronsOption.MakeElement(ref vert_pos),
-                ..allowGrabbingShroomsOption.MakeElement(ref vert_pos),
-                ..allowGrabbingKarmaFlowersOption.MakeElement(ref vert_pos),
-                ..canDropForFoodOption.MakeElement(ref vert_pos)
-            ]);
-            keepItemScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
-            #endregion
-
-            #region creatureImmunityTab
-            vert_pos = VERT_POS_INIT;
-            creatureImmunityTab.AddItems(new UIelement[]
-            {
-                new OpLabel(TITLE_HORIZONTAL, vert_pos, "Creature Protection Options", true),
-                creatureImmunityScroll
-            });
-            vert_pos = SCROLL_POS_INIT;
-            creatureImmunityScroll.AddItems([
-                ..leechProtectionOption.MakeElement(ref vert_pos),
-                ..coalescipedeProtectionOption.MakeElement(ref vert_pos),
-                ..mirosBirdProtectionOption.MakeElement(ref vert_pos)
-            ]);
-            creatureImmunityScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
-            #endregion
-
-            #region itemPassingTab
-            vert_pos = VERT_POS_INIT;
-            itemPassingTab.AddItems(new UIelement[]
-            {
-                new OpLabel(TITLE_HORIZONTAL, vert_pos, "Item Passing Controls", true),
-                itemPassingScroll
-            });
-            vert_pos = SCROLL_POS_INIT;
-            itemPassingScroll.AddItems([
-                ..itemPassingOption.MakeElement(ref vert_pos),
-                ..playerItemMovingOption.MakeElement(ref vert_pos),
-                ..passUpKeyBind.MakeElement(ref vert_pos),
-                ..passDownKeyBind.MakeElement(ref vert_pos)
-
-            ]);
-            itemPassingScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
-            #endregion
-
-            #region sillinessTab
-            vert_pos = VERT_POS_INIT;
-            sillinessTab.AddItems(new UIelement[]
-            {
-                new OpLabel(TITLE_HORIZONTAL, vert_pos, "Silliness", true),
-                sillinessScroll
-            });
-            vert_pos = SCROLL_POS_INIT;
-            sillinessScroll.AddItems([
-                ..bigHeadModeOption.MakeElement(ref vert_pos)
-            ]);
-            sillinessScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
-            #endregion
-
-            #region campaignSpecificTab
-            vert_pos = VERT_POS_INIT;
-            campaignSpecificTab.AddItems(new UIelement[]
-            {
-                new OpLabel(TITLE_HORIZONTAL, vert_pos, "Campaign Specific", true),
-                campaignSpecificScroll
-            });
-            vert_pos = SCROLL_POS_INIT;
-            campaignSpecificScroll.AddItems([
-                ..rivDrownProtectionOption.MakeElement(ref vert_pos),
-                ..artiBombProtectionOption.MakeElement(ref vert_pos)
-            ]);
-            campaignSpecificScroll.SetContentSize(SCROLL_POS_INIT - vert_pos + SCROLL_BOTTOM_PADDING, true);
-            #endregion
-
         }
 
         public override void Update()
@@ -619,49 +427,6 @@ namespace FieldTrip
                 option.Update();
             }
         }
-
-        bool GetKeepItemEnabled()
-        {
-            return keepItemEnabled.Value;
-        }
-        static Configurable<bool> keepItemEnabled;
-        static Configurable<bool> artificerDontLaunchKids;
-        static Configurable<bool> noThrowPups;
-        static Configurable<bool> pupImpactCushion;
-        static Configurable<bool> allowGrabbingFood;
-        static Configurable<bool> allowGrabbingNoodleflies;
-        static Configurable<bool> allowGrabbingCentipedes;
-        static Configurable<bool> allowGrabbing5PNeurons;
-        static Configurable<bool> allowGrabbingShrooms;
-        static Configurable<bool> allowGrabbingKarmaFlowers;
-        static Configurable<bool> allowGrabbingTardigrades;
-        static Configurable<bool> preventDraggingVines;
-        static Configurable<bool> allowBackspear;
-        static Configurable<bool> leechProtection;
-        static Configurable<bool> coalescipedeProtection;
-        static Configurable<bool> canDropForFood;
-        static Configurable<int> maxPupSlider;
-        static Configurable<bool> infinitePupStack;
-        static Configurable<KeyCode> upInputController1;
-        static Configurable<KeyCode> downInputController1;
-        static Configurable<KeyCode> upInputController2;
-        static Configurable<KeyCode> downInputController2;
-        static Configurable<KeyCode> upInputController3;
-        static Configurable<KeyCode> downInputController3;
-        static Configurable<KeyCode> upInputController4;
-        static Configurable<KeyCode> downInputController4;
-        static Configurable<KeyCode> upInputKB;
-        static Configurable<KeyCode> downInputKB;
-        static Configurable<bool> itemPassing;
-        static Configurable<bool> playerItemMoving;
-        static Configurable<bool> rivDrownProtection;
-        static Configurable<bool> artiBombProtection;
-        static Configurable<bool> bigHeadMode;
-        static Configurable<bool> stunProtection;
-        static Configurable<int> maxStack;
-        static Configurable<bool> mirosBirdProtection;
-        static Configurable<bool> killzoneProtection;
-
 
     }
 }

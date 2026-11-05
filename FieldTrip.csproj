@@ -84,8 +84,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="FieldTripCWTs.cs" />
-    <Compile Include="Menu.cs" />
+    <Compile Include="Menu\Menu.cs" />
     <Compile Include="FieldTripMain.cs" />
+    <Compile Include="Menu\SlupfariKeyBind.cs" />
+    <Compile Include="Menu\SlupfariOption.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
