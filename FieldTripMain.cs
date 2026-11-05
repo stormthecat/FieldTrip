@@ -633,7 +633,7 @@ namespace FieldTrip
                     if (player == null)
                         return false;
                     //base.Logger.LogMessage("Prevented killzone death");
-                    return (OptionsMenu.killzoneProtection.Value && player.onBack != null);
+                    return (OptionsMenu.killzoneProtectionOption.GetValue() && player.onBack != null);
                 });
                 c.Emit(OpCodes.Brtrue, label);
 
@@ -655,10 +655,8 @@ namespace FieldTrip
 
         private void slugToBackHook(On.Player.SlugOnBack.orig_SlugToBack orig, Player.SlugOnBack self, Player playerToBack)
         {
-            //Debug.Log("Slug " + self.owner.ToString() + " to " + playerToBack.ToString());
-            if (OptionsMenu.maxStack.Value <= 0)
+            if (OptionsMenu.maxStackOption.GetValue() <= 0)
                 return;
-            
             orig(self, playerToBack);
         }
 
@@ -671,7 +669,7 @@ namespace FieldTrip
                 c.Emit(OpCodes.Ldarg_0);
                 c.EmitDelegate<Func<bool, Player.SlugOnBack, bool>>((val, slugOnBack) =>
                 {
-                    if (!val && !slugOnBack.slugcat.dead && OptionsMenu.stunProtection.Value)
+                    if (!val && !slugOnBack.slugcat.dead && OptionsMenu.stunProtectionOption.GetValue())
                         return true;
                     return val;
                 });
@@ -692,7 +690,7 @@ namespace FieldTrip
                 c.GotoNext(MoveType.After,i => i.MatchLdfld<Player.SlugOnBack>("slugcat"));
                 c.EmitDelegate<Func<object, object>>((obj) =>
                 {
-                    if (OptionsMenu.stunProtection.Value)
+                    if (OptionsMenu.stunProtectionOption.GetValue())
                         return null;
                     return obj;
                 });
@@ -728,7 +726,7 @@ namespace FieldTrip
                     c.EmitDelegate<Func<bool, bool>>((var) =>
                     {
                         
-                        if (OptionsMenu.artiBombProtection.Value && player?.AI != null && player.room.game.StoryCharacter == MoreSlugcatsEnums.SlugcatStatsName.Artificer)
+                        if (OptionsMenu.artiBombProtectionOption.GetValue() && player?.AI != null && player.room.game.StoryCharacter == MoreSlugcatsEnums.SlugcatStatsName.Artificer)
                             return true;
                         return var;
                     });
@@ -751,7 +749,7 @@ namespace FieldTrip
                     c.Index += 4;
                     c.EmitDelegate<Func<bool, bool>>((var) =>
                     {
-                        if (OptionsMenu.artiBombProtection.Value && player?.AI != null && player.room.game.StoryCharacter == MoreSlugcatsEnums.SlugcatStatsName.Artificer)
+                        if (OptionsMenu.artiBombProtectionOption.GetValue() && player?.AI != null && player.room.game.StoryCharacter == MoreSlugcatsEnums.SlugcatStatsName.Artificer)
                             return false;
                         return var;
                     });
@@ -777,7 +775,7 @@ namespace FieldTrip
                 s.GotoNext(MoveType.After, array);
                 s.EmitDelegate<Func<float, float>>((val) =>
                 {
-                    if (OptionsMenu.bigHeadMode.Value)
+                    if (OptionsMenu.bigHeadModeOption.GetValue())
                         return val * 2;
                     else
                         return val;
@@ -809,7 +807,7 @@ namespace FieldTrip
             float drown = self.drown;
             orig(self);
             if (self.submerged && self.isNPC &&
-                OptionsMenu.rivDrownProtection.Value && self.abstractCreature.world.game.StoryCharacter == MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
+                OptionsMenu.rivDrownProtectionOption.GetValue() && self.abstractCreature.world.game.StoryCharacter == MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
             {
                 self.airInLungs = air;
                 self.lungsExhausted = lungsExhausted;
@@ -1109,7 +1107,7 @@ namespace FieldTrip
                         }
                         //Debug.Log("SLUGUP SAFARI:\n\tStack size= " + pupTowerSize + "\n\tMax stack is infinite= " + OptionsMenu.infinitePupStack.Value + "\n\tMax stack value= " + OptionsMenu.maxStack.Value);
                         //remove slug from hand and place it at the top of the stack
-                       if (OptionsMenu.infinitePupStack.Value || pupTowerSize + 1 < OptionsMenu.maxStack.Value)
+                       if (OptionsMenu.infinitePupStackOption.GetValue() || pupTowerSize + 1 < OptionsMenu.maxStackOption.GetValue())
                         {
                             nextSlug.slugOnBack.SlugToBack(slugInHand);
                             self.owner.ReleaseGrasp(i);
@@ -1205,7 +1203,7 @@ namespace FieldTrip
             //Debug.Log("PLAYER NUMBER: " + self.playerState.playerNumber + "'s GRAB UPDATE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
             //THAT NPC CHECK MUST NOT BE MOVED EVER OR YOU WILL FEEL TRUE PAIN
-            if (OptionsMenu.keepItemEnabled.Value && OptionsMenu.itemPassing.Value && !self.isNPC && self.onBack==null)
+            if (OptionsMenu.keepItemEnabledOption.GetValue() && OptionsMenu.itemPassingOption.GetValue() && !self.isNPC && self.onBack==null)
             {
                 if (isUpPressed(self))
                 {
@@ -1303,7 +1301,7 @@ namespace FieldTrip
         {
             if (slug.slugOnBack == null || !slug.slugOnBack.HasASlug)
                 return null;
-            else if ((!slug.slugOnBack.slugcat.isNPC && !OptionsMenu.playerItemMoving.Value))
+            else if ((!slug.slugOnBack.slugcat.isNPC && !OptionsMenu.playerItemMovingOption.GetValue()))
                 return getPassCandidate(slug.slugOnBack.slugcat);
             else
                 return slug.slugOnBack.slugcat;
@@ -1314,23 +1312,23 @@ namespace FieldTrip
             bool isPressed = false;
             if (player.input[0].controllerType == Options.ControlSetup.Preset.KeyboardSinglePlayer || player.input[0].controllerType == Options.ControlSetup.Preset.None)
             {
-                isPressed = Input.GetKey(OptionsMenu.upInputKB.Value);
+                isPressed = Input.GetKey(OptionsMenu.upInputKBOption.GetValue());
             }
             int gamePadNumber = Custom.rainWorld.options.controls[playerNumber].gamePadNumber;
             switch (gamePadNumber)
             {
                 case(0):
                     //Debug.Log(Input.GetKey(OptionsMenu.upInputController1.Value));
-                    return isPressed || Input.GetKey(OptionsMenu.upInputController1.Value);
+                    return isPressed || Input.GetKey(OptionsMenu.upInputController1Option.GetValue());
                 case (1):
                     //Debug.Log(Input.GetKey(OptionsMenu.upInputController2.Value));
-                    return (isPressed || Input.GetKey(OptionsMenu.upInputController2.Value));
+                    return (isPressed || Input.GetKey(OptionsMenu.upInputController2Option.GetValue()));
                 case (2):
                     //Debug.Log(Input.GetKey(OptionsMenu.upInputController3.Value));
-                    return isPressed || Input.GetKey(OptionsMenu.upInputController3.Value);
+                    return isPressed || Input.GetKey(OptionsMenu.upInputController3Option.GetValue());
                 case (3):
                     //Debug.Log(Input.GetKey(OptionsMenu.upInputController4.Value));
-                    return isPressed || Input.GetKey(OptionsMenu.upInputController4.Value);
+                    return isPressed || Input.GetKey(OptionsMenu.upInputController4Option.GetValue());
                 default:
                     return isPressed;
             }
@@ -1341,23 +1339,23 @@ namespace FieldTrip
             bool isPressed = false;
             if (player.input[0].controllerType == Options.ControlSetup.Preset.KeyboardSinglePlayer || player.input[0].controllerType == Options.ControlSetup.Preset.None)
             {
-                isPressed = Input.GetKey(OptionsMenu.downInputKB.Value);
+                isPressed = Input.GetKey(OptionsMenu.downInputKBOption.GetValue());
             }
             int gamePadNumber = Custom.rainWorld.options.controls[playerNumber].gamePadNumber;
             switch (gamePadNumber)
             {
                 case (0):
                     //Debug.Log(Input.GetKey(OptionsMenu.upInputController1.Value));
-                    return isPressed || Input.GetKey(OptionsMenu.downInputController1.Value);
+                    return isPressed || Input.GetKey(OptionsMenu.downInputController1Option.GetValue());
                 case (1):
                     //Debug.Log(Input.GetKey(OptionsMenu.upInputController2.Value));
-                    return (isPressed || Input.GetKey(OptionsMenu.downInputController2.Value));
+                    return (isPressed || Input.GetKey(OptionsMenu.downInputController2Option.GetValue()));
                 case (2):
                     //Debug.Log(Input.GetKey(OptionsMenu.upInputController3.Value));
-                    return isPressed || Input.GetKey(OptionsMenu.downInputController3.Value);
+                    return isPressed || Input.GetKey(OptionsMenu.downInputController3Option.GetValue());
                 case (3):
                     //Debug.Log(Input.GetKey(OptionsMenu.upInputController4.Value));
-                    return isPressed || Input.GetKey(OptionsMenu.downInputController4.Value);
+                    return isPressed || Input.GetKey(OptionsMenu.downInputController4Option.GetValue());
                 default:
                     return isPressed;
             }
@@ -1405,11 +1403,11 @@ namespace FieldTrip
         {
             if (self.behaviorType != null && self.behaviorType == SlugNPCAI.BehaviorType.OnHead && self.cat != null)
             {
-                if (self.cat.animation == Player.AnimationIndex.VineGrab && OptionsMenu.preventDraggingVines.Value)
+                if (self.cat.animation == Player.AnimationIndex.VineGrab && OptionsMenu.preventDraggingVinesOption.GetValue())
                     self.cat.animation = Player.AnimationIndex.None;
                 if (self.cat.grasps[0] != null && self.cat.grasps[0].grabbed != null)
                 {
-                    if (self.cat.grasps[0].grabbed is Spear && OptionsMenu.allowBackspear.Value)
+                    if (self.cat.grasps[0].grabbed is Spear && OptionsMenu.allowBackspearOption.GetValue())
                     {
                         if (self.cat.spearOnBack == null)
                         {
@@ -1440,7 +1438,7 @@ namespace FieldTrip
         {
             //Debug.Log(self.ToString() + " wants to grab " + obj.ToString());
 
-            if (obj != null && OptionsMenu.keepItemEnabled.Value && obj.grabbedBy.Any((Creature.Grasp x) => (x != null && x.grabber != null && x.grabber is Player && (x.grabber as Player).isNPC)))
+            if (obj != null && OptionsMenu.keepItemEnabledOption.GetValue() && obj.grabbedBy.Any((Creature.Grasp x) => (x != null && x.grabber != null && x.grabber is Player && (x.grabber as Player).isNPC)))
                 return false;
             else if (obj != null && self.isNPC && self.AI != null && self.AI.behaviorType == SlugNPCAI.BehaviorType.OnHead && (obj.grabbedBy.Any((Creature.Grasp x) => (x != null && x.grabber != null && x.grabber is Player))))
             {
@@ -1452,7 +1450,7 @@ namespace FieldTrip
         private void passingGrabHook(On.MoreSlugcats.SlugNPCAI.orig_PassingGrab orig, SlugNPCAI self)
         {
  
-            if (OptionsMenu.allowGrabbingFood.Value && self.behaviorType == SlugNPCAI.BehaviorType.OnHead && (self.cat.grasps[0] == null || OptionsMenu.canDropForFood.Value))
+            if (OptionsMenu.allowGrabbingFoodOption.GetValue() && self.behaviorType == SlugNPCAI.BehaviorType.OnHead && (self.cat.grasps[0] == null || OptionsMenu.canDropForFoodOption.GetValue()))
             {
                 //TODO make this not awful
                 if (self.itemTracker.ItemCount > 0)
@@ -1462,7 +1460,7 @@ namespace FieldTrip
                         PhysicalObject realizedObject = self.itemTracker.GetRep(j).representedItem.realizedObject;
                         if (self.CanGrabItem(realizedObject) && realizedObject.grabbedBy.Count == 0 && realizedObject is IPlayerEdible)
                         {
-                            if (self.WantsToEatThis(realizedObject) && (self.cat.grasps[0] == null || !self.WantsToEatThis(self.cat.grasps[0].grabbed)) && (!(realizedObject is OracleSwarmer) || self.NeuronsLegal()) && (!(realizedObject is SSOracleSwarmer) || OptionsMenu.allowGrabbing5PNeurons.Value) && (!(realizedObject is Mushroom) || OptionsMenu.allowGrabbingShrooms.Value) && (!(realizedObject is KarmaFlower) || OptionsMenu.allowGrabbingKarmaFlowers.Value))
+                            if (self.WantsToEatThis(realizedObject) && (self.cat.grasps[0] == null || !self.WantsToEatThis(self.cat.grasps[0].grabbed)) && (!(realizedObject is OracleSwarmer) || self.NeuronsLegal()) && (!(realizedObject is SSOracleSwarmer) || OptionsMenu.allowGrabbing5PNeuronsOption.GetValue()) && (!(realizedObject is Mushroom) || OptionsMenu.allowGrabbingShroomsOption.GetValue()) && (!(realizedObject is KarmaFlower) || OptionsMenu.allowGrabbingKarmaFlowersOption.GetValue()))
                             {
                                 //Debug.Log("Slugpup_Safari: " + self.cat.ToString() + " grabbing " + realizedObject.ToString());
                                 self.cat.NPCForceGrab(realizedObject);
@@ -1484,9 +1482,9 @@ namespace FieldTrip
                                 Creature mostAttractivePrey = self.preyTracker?.MostAttractivePrey?.representedCreature?.realizedCreature;
                                 if ((realizedCreature == null || realizedCreature.dead || self.creature.personality.sympathy <= 0.8f) 
                                     && ((self.cat.Grabability(realizedCreature) == Player.ObjectGrabability.OneHand && 
-                                    (OptionsMenu.allowGrabbingNoodleflies.Value || !(realizedCreature is SmallNeedleWorm)) && 
-                                    (OptionsMenu.allowGrabbingCentipedes.Value || !(mostAttractivePrey != null && (mostAttractivePrey is Centipede))) && 
-                                    (OptionsMenu.allowGrabbingTardigrades.Value || !(mostAttractivePrey != null && (mostAttractivePrey is Tardigrade)))) || 
+                                    (OptionsMenu.allowGrabbingNoodlefliesOption.GetValue() || !(realizedCreature is SmallNeedleWorm)) && 
+                                    (OptionsMenu.allowGrabbingCentipedesOption.GetValue() || !(mostAttractivePrey != null && (mostAttractivePrey is Centipede))) && 
+                                    (OptionsMenu.allowGrabbingTardigradesOption.GetValue() || !(mostAttractivePrey != null && (mostAttractivePrey is Tardigrade)))) || 
                                     (realizedCreature is Barnacle && !(realizedCreature as Barnacle).hasShell)))
                                 {
                                     self.cat.NPCForceGrab(realizedCreature);
@@ -1519,7 +1517,7 @@ namespace FieldTrip
                 //make label after releasegrasp
                 var label = il.DefineLabel();
                 placeholder.MarkLabel(label);                
-                c.EmitDelegate<Func<bool>>(() => OptionsMenu.keepItemEnabled.Value);
+                c.EmitDelegate<Func<bool>>(() => OptionsMenu.keepItemEnabledOption.GetValue());
                 c.Emit(OpCodes.Brtrue_S, label);
                 c.Emit(OpCodes.Ldarg_0);
             }
@@ -1541,7 +1539,7 @@ namespace FieldTrip
                 //prevent arti from launching pups with coop on
                 c.EmitDelegate<Func<Player, bool>>((slugcat) =>
                 {
-                    if (!slugcat.isNPC || (OptionsMenu.artificerDontLaunchKids.Value && slugcat.AI != null && slugcat.AI.behaviorType == SlugNPCAI.BehaviorType.OnHead))
+                    if (!slugcat.isNPC || (OptionsMenu.artificerDontLaunchKidsOption.GetValue() && slugcat.AI != null && slugcat.AI.behaviorType == SlugNPCAI.BehaviorType.OnHead))
                     {
                         return false;
                     }
@@ -1557,7 +1555,7 @@ namespace FieldTrip
                 //prevent arti from launching pups when coop is off
                 c.EmitDelegate<Func<UpdatableAndDeletable,int,int,bool>>((self, m, n) =>{
                     Player player = self.room.physicalObjects[m][n] as Player;
-                    if (player == null||!player.isNPC||player.AI == null||player.AI.behaviorType!=SlugNPCAI.BehaviorType.OnHead||!OptionsMenu.artificerDontLaunchKids.Value)
+                    if (player == null||!player.isNPC||player.AI == null||player.AI.behaviorType!=SlugNPCAI.BehaviorType.OnHead||!OptionsMenu.artificerDontLaunchKidsOption.GetValue())
                     {
                         return true;
                     }
@@ -1584,7 +1582,7 @@ namespace FieldTrip
                 placeholder.Index--;
                 var label = il.DefineLabel();
                 placeholder.MarkLabel(label);
-                c.EmitDelegate<Func<bool>>(() => OptionsMenu.noThrowPups.Value);
+                c.EmitDelegate<Func<bool>>(() => OptionsMenu.noThrowPupsOption.GetValue());
                 c.Emit(OpCodes.Brtrue_S, label);
                 var label2 = il.DefineLabel();
                 Func<Instruction, bool>[] array = new Func<Instruction, bool>[3];
@@ -1699,7 +1697,7 @@ namespace FieldTrip
                 placeholder.MarkLabel(label);
                 c.EmitDelegate<Func<Player, bool>>((slugcat) =>
                 {
-                    if (slugcat.isNPC && (OptionsMenu.pupImpactCushion.Value && slugcat.AI != null && slugcat.AI.behaviorType == SlugNPCAI.BehaviorType.OnHead))
+                    if (slugcat.isNPC && (OptionsMenu.pupImpactCushionOption.GetValue() && slugcat.AI != null && slugcat.AI.behaviorType == SlugNPCAI.BehaviorType.OnHead))
                     {
                         return true;
                     }
@@ -1785,7 +1783,7 @@ namespace FieldTrip
                 c.Emit(OpCodes.Ldarg_1);
                 c.EmitDelegate<Func<Creature, bool>>((critter) =>
                 {
-                    if (OptionsMenu.leechProtection.Value && (critter is Player) && (critter as Player).AI != null && (critter as Player).AI.behaviorType == SlugNPCAI.BehaviorType.OnHead)
+                    if (OptionsMenu.leechProtectionOption.GetValue() && (critter is Player) && (critter as Player).AI != null && (critter as Player).AI.behaviorType == SlugNPCAI.BehaviorType.OnHead)
                     {
                         //base.Logger.LogDebug("BBBBBBBBBBBB");
                         return true;
@@ -1821,7 +1819,7 @@ namespace FieldTrip
                 //prevent grabbing if conditions are met
                 c.EmitDelegate<Func<bool, Creature, bool>>((val, critter) =>
                 {
-                    if (OptionsMenu.leechProtection.Value && (critter is Player) && (critter as Player).AI != null && (critter as Player).AI.behaviorType == SlugNPCAI.BehaviorType.OnHead)
+                    if (OptionsMenu.leechProtectionOption.GetValue() && (critter is Player) && (critter as Player).AI != null && (critter as Player).AI.behaviorType == SlugNPCAI.BehaviorType.OnHead)
                     {
                         return false;
                     }
@@ -1848,7 +1846,7 @@ namespace FieldTrip
                     {
                         return true;
                     }
-                    if (OptionsMenu.coalescipedeProtection.Value && (critter is Player) && (critter as Player).AI != null && (critter as Player).AI.behaviorType == SlugNPCAI.BehaviorType.OnHead)
+                    if (OptionsMenu.coalescipedeProtectionOption.GetValue() && (critter is Player) && (critter as Player).AI != null && (critter as Player).AI.behaviorType == SlugNPCAI.BehaviorType.OnHead)
                     {
                         //base.Logger.LogDebug("BBBBBBBBBBBB");
                         return true;

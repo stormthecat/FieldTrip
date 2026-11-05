@@ -1,16 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 using Menu.Remix.MixedUI;
-using Menu.Remix.MixedUI.ValueTypes;
-using static System.Runtime.CompilerServices.RuntimeHelpers;
-using System.Runtime.CompilerServices;
-using System.Runtime.Remoting.Metadata.W3cXsd2001;
-using System.CodeDom;
-using UnityEngine.PlayerLoop;
+
 
 namespace FieldTrip
 {
@@ -24,7 +16,6 @@ namespace FieldTrip
         const float CHECKBOX_LABEL_HORIZONTAL = HORIZONTAL + 35f;
         const float KEYBIND_HORIZONTAL_2ND_ROW_OFFSET = 250f;
         const float KEYBIND_HORIZONTAL_OFFSET = HORIZONTAL + 30f;
-
 
         //vertical
         const float CHECKBOX_VERT_OFFSET_PARENT = 80f;
@@ -98,32 +89,30 @@ namespace FieldTrip
                 float descVertOffset = vert_pos + KEYBIND_DESC_VERTICAL_OFFSET;
                 elements = 
                 [
-                    //TODO: Consolidate some of these for readability
-                    // also make them compatible with the options thing
                     ..new UIelement[] {new OpLabel(HORIZONTAL + horzOffset, vert_pos + (vertOffset -= KEYBIND_PARAGRAPH_VERT_OFFSET), title, true) },
 
                     ..keyboard.OverrideElement([
-                        new OpKeyBinder(keyboard.Get_Config(),new Vector2(keyHorzOffset, vert_pos + (vertOffset -= KEYBIND_VERT_OFFSET)),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.AnyController),
+                        new OpKeyBinder(keyboard.GetConfig(),new Vector2(keyHorzOffset, vert_pos + (vertOffset -= KEYBIND_VERT_OFFSET)),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.AnyController),
                         new OpLabel(descHorzOffset, descVertOffset + vertOffset, "Keyboard", false)
                         ]),
 
                     ..controller1.OverrideElement([
-                        new OpKeyBinder(controller1.Get_Config(),new Vector2(keyHorzOffset, vert_pos + (vertOffset -= KEYBIND_VERT_OFFSET)),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller1),
+                        new OpKeyBinder(controller1.GetConfig(),new Vector2(keyHorzOffset, vert_pos + (vertOffset -= KEYBIND_VERT_OFFSET)),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller1),
                         new OpLabel(descHorzOffset, descVertOffset + vertOffset, "Controller 1", false),
                         ]),
 
                     ..controller2.OverrideElement([
-                        new OpKeyBinder(controller2.Get_Config(),new Vector2(keyHorzOffset, vert_pos + (vertOffset -= KEYBIND_VERT_OFFSET)),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller2),
+                        new OpKeyBinder(controller2.GetConfig(),new Vector2(keyHorzOffset, vert_pos + (vertOffset -= KEYBIND_VERT_OFFSET)),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller2),
                         new OpLabel(descHorzOffset, descVertOffset + vertOffset, "Controller 2", false),
                         ]),
 
                      ..controller3.OverrideElement([
-                        new OpKeyBinder(controller3.Get_Config(),new Vector2(keyHorzOffset, vert_pos + (vertOffset -= KEYBIND_VERT_OFFSET)),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller3),
+                        new OpKeyBinder(controller3.GetConfig(),new Vector2(keyHorzOffset, vert_pos + (vertOffset -= KEYBIND_VERT_OFFSET)),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller3),
                         new OpLabel(descHorzOffset, descVertOffset + vertOffset, "Controller 3", false),
                         ]),
 
                     ..controller4.OverrideElement([
-                        new OpKeyBinder(controller4.Get_Config(),new Vector2(keyHorzOffset, vert_pos + (vertOffset -= KEYBIND_VERT_OFFSET)),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller4),
+                        new OpKeyBinder(controller4.GetConfig(),new Vector2(keyHorzOffset, vert_pos + (vertOffset -= KEYBIND_VERT_OFFSET)),new Vector2(KEYBIND_LENGTH,KEYBIND_HEIGHT), false, OpKeyBinder.BindController.Controller4),
                         new OpLabel(descHorzOffset, descVertOffset + vertOffset, "Controller 4", false),
                         ]),
                 ];
@@ -173,8 +162,18 @@ namespace FieldTrip
                 this.horiOffset = (parent != null) ? parent.horiOffset + HORIZONTAL_INDENT : 0;
                 this.childDisableMode = childDisableStates.NONINVERSE;
             }
+            public T GetValue()
+            {
+                T value = config.Value;
+                if (value is bool)
+                {
+                    bool val = (bool)(object)value & !this.disabled;
+                    return (T)(object)val;
+                }
+                return value;
+            }
 
-            public Configurable<T> Get_Config()
+            public Configurable<T> GetConfig()
             {
                 return this.config;
             }
@@ -233,7 +232,6 @@ namespace FieldTrip
                 for(int i = 0; i < elements.Length; i++)
                 {
                     if (elements[i] is OpLabel) (elements[i] as OpLabel).bumpBehav = bumpBehav;
-                    //elements[i].description = "IF YOU\'RE READING THIS I FORGOT TO REPLACE THE PLACEHOLDER TEXT";
                     elements[i].description = "OPTION_ID: " + this.key;
                 }
             }
@@ -286,45 +284,45 @@ namespace FieldTrip
 
         #region OptionDeclarations
 
-        public SlupfariOption<bool> keepItemEnabledOption;
-        public SlupfariOption<bool> artificerDontLaunchKidsOption;
-        public SlupfariOption<bool> noThrowPupsOption;
-        public SlupfariOption<bool> pupImpactCushionOption;
-        public SlupfariOption<bool> allowGrabbingFoodOption;
-        public SlupfariOption<bool> allowGrabbingNoodlefliesOption;
-        public SlupfariOption<bool> allowGrabbingCentipedesOption;
-        public SlupfariOption<bool> allowGrabbing5PNeuronsOption;
-        public SlupfariOption<bool> allowGrabbingShroomsOption;
-        public SlupfariOption<bool> allowGrabbingKarmaFlowersOption;
-        public SlupfariOption<bool> allowGrabbingTardigradesOption;
-        public SlupfariOption<bool> preventDraggingVinesOption;
-        public SlupfariOption<bool> allowBackspearOption;
-        public SlupfariOption<bool> leechProtectionOption;
-        public SlupfariOption<bool> coalescipedeProtectionOption;
-        public SlupfariOption<bool> canDropForFoodOption;
-        public SlupfariOption<int> maxPupSliderOption;
-        public SlupfariOption<bool> infinitePupStackOption;
-        public SlupfariOption<KeyCode> upInputController1Option;
-        public SlupfariOption<KeyCode> downInputController1Option;
-        public SlupfariOption<KeyCode> upInputController2Option;
-        public SlupfariOption<KeyCode> downInputController2Option;
-        public SlupfariOption<KeyCode> upInputController3Option;
-        public SlupfariOption<KeyCode> downInputController3Option;
-        public SlupfariOption<KeyCode> upInputController4Option;
-        public SlupfariOption<KeyCode> downInputController4Option;
-        public SlupfariOption<KeyCode> upInputKBOption;
-        public SlupfariOption<KeyCode> downInputKBOption;
-        public SlupfariOption<bool> itemPassingOption;
-        public SlupfariOption<bool> playerItemMovingOption;
-        public SlupfariOption<bool> rivDrownProtectionOption;
-        public SlupfariOption<bool> artiBombProtectionOption;
-        public SlupfariOption<bool> bigHeadModeOption;
-        public SlupfariOption<bool> stunProtectionOption;
-        public SlupfariOption<int> maxStackOption;
-        public SlupfariOption<bool> mirosBirdProtectionOption;
-        public SlupfariOption<bool> killzoneProtectionOption;
-        public SlupfariKeyBind passUpKeyBind;
-        public SlupfariKeyBind passDownKeyBind;
+        public static SlupfariOption<bool> keepItemEnabledOption;
+        public static SlupfariOption<bool> artificerDontLaunchKidsOption;
+        public static SlupfariOption<bool> noThrowPupsOption;
+        public static SlupfariOption<bool> pupImpactCushionOption;
+        public static SlupfariOption<bool> allowGrabbingFoodOption;
+        public static SlupfariOption<bool> allowGrabbingNoodlefliesOption;
+        public static SlupfariOption<bool> allowGrabbingCentipedesOption;
+        public static SlupfariOption<bool> allowGrabbing5PNeuronsOption;
+        public static SlupfariOption<bool> allowGrabbingShroomsOption;
+        public static SlupfariOption<bool> allowGrabbingKarmaFlowersOption;
+        public static SlupfariOption<bool> allowGrabbingTardigradesOption;
+        public static SlupfariOption<bool> preventDraggingVinesOption;
+        public static SlupfariOption<bool> allowBackspearOption;
+        public static SlupfariOption<bool> leechProtectionOption;
+        public static SlupfariOption<bool> coalescipedeProtectionOption;
+        public static SlupfariOption<bool> canDropForFoodOption;
+        public static SlupfariOption<int> maxPupSliderOption;
+        public static SlupfariOption<bool> infinitePupStackOption;
+        public static SlupfariOption<KeyCode> upInputController1Option;
+        public static SlupfariOption<KeyCode> downInputController1Option;
+        public static SlupfariOption<KeyCode> upInputController2Option;
+        public static SlupfariOption<KeyCode> downInputController2Option;
+        public static SlupfariOption<KeyCode> upInputController3Option;
+        public static SlupfariOption<KeyCode> downInputController3Option;
+        public static SlupfariOption<KeyCode> upInputController4Option;
+        public static SlupfariOption<KeyCode> downInputController4Option;
+        public static SlupfariOption<KeyCode> upInputKBOption;
+        public static SlupfariOption<KeyCode> downInputKBOption;
+        public static SlupfariOption<bool> itemPassingOption;
+        public static SlupfariOption<bool> playerItemMovingOption;
+        public static SlupfariOption<bool> rivDrownProtectionOption;
+        public static SlupfariOption<bool> artiBombProtectionOption;
+        public static SlupfariOption<bool> bigHeadModeOption;
+        public static SlupfariOption<bool> stunProtectionOption;
+        public static SlupfariOption<int> maxStackOption;
+        public static SlupfariOption<bool> mirosBirdProtectionOption;
+        public static SlupfariOption<bool> killzoneProtectionOption;
+        public static SlupfariKeyBind passUpKeyBind;
+        public static SlupfariKeyBind passDownKeyBind;
         #endregion
         SlupfariOptionInterface[] optionUpdateList;
         public OptionsMenu(FieldTripMain plugin)
@@ -626,43 +624,43 @@ namespace FieldTrip
         {
             return keepItemEnabled.Value;
         }
-        public static Configurable<bool> keepItemEnabled;
-        public static Configurable<bool> artificerDontLaunchKids;
-        public static Configurable<bool> noThrowPups;
-        public static Configurable<bool> pupImpactCushion;
-        public static Configurable<bool> allowGrabbingFood;
-        public static Configurable<bool> allowGrabbingNoodleflies;
-        public static Configurable<bool> allowGrabbingCentipedes;
-        public static Configurable<bool> allowGrabbing5PNeurons;
-        public static Configurable<bool> allowGrabbingShrooms;
-        public static Configurable<bool> allowGrabbingKarmaFlowers;
-        public static Configurable<bool> allowGrabbingTardigrades;
-        public static Configurable<bool> preventDraggingVines;
-        public static Configurable<bool> allowBackspear;
-        public static Configurable<bool> leechProtection;
-        public static Configurable<bool> coalescipedeProtection;
-        public static Configurable<bool> canDropForFood;
-        public static Configurable<int> maxPupSlider;
-        public static Configurable<bool> infinitePupStack;
-        public static Configurable<KeyCode> upInputController1;
-        public static Configurable<KeyCode> downInputController1;
-        public static Configurable<KeyCode> upInputController2;
-        public static Configurable<KeyCode> downInputController2;
-        public static Configurable<KeyCode> upInputController3;
-        public static Configurable<KeyCode> downInputController3;
-        public static Configurable<KeyCode> upInputController4;
-        public static Configurable<KeyCode> downInputController4;
-        public static Configurable<KeyCode> upInputKB;
-        public static Configurable<KeyCode> downInputKB;
-        public static Configurable<bool> itemPassing;
-        public static Configurable<bool> playerItemMoving;
-        public static Configurable<bool> rivDrownProtection;
-        public static Configurable<bool> artiBombProtection;
-        public static Configurable<bool> bigHeadMode;
-        public static Configurable<bool> stunProtection;
-        public static Configurable<int> maxStack;
-        public static Configurable<bool> mirosBirdProtection;
-        public static Configurable<bool> killzoneProtection;
+        static Configurable<bool> keepItemEnabled;
+        static Configurable<bool> artificerDontLaunchKids;
+        static Configurable<bool> noThrowPups;
+        static Configurable<bool> pupImpactCushion;
+        static Configurable<bool> allowGrabbingFood;
+        static Configurable<bool> allowGrabbingNoodleflies;
+        static Configurable<bool> allowGrabbingCentipedes;
+        static Configurable<bool> allowGrabbing5PNeurons;
+        static Configurable<bool> allowGrabbingShrooms;
+        static Configurable<bool> allowGrabbingKarmaFlowers;
+        static Configurable<bool> allowGrabbingTardigrades;
+        static Configurable<bool> preventDraggingVines;
+        static Configurable<bool> allowBackspear;
+        static Configurable<bool> leechProtection;
+        static Configurable<bool> coalescipedeProtection;
+        static Configurable<bool> canDropForFood;
+        static Configurable<int> maxPupSlider;
+        static Configurable<bool> infinitePupStack;
+        static Configurable<KeyCode> upInputController1;
+        static Configurable<KeyCode> downInputController1;
+        static Configurable<KeyCode> upInputController2;
+        static Configurable<KeyCode> downInputController2;
+        static Configurable<KeyCode> upInputController3;
+        static Configurable<KeyCode> downInputController3;
+        static Configurable<KeyCode> upInputController4;
+        static Configurable<KeyCode> downInputController4;
+        static Configurable<KeyCode> upInputKB;
+        static Configurable<KeyCode> downInputKB;
+        static Configurable<bool> itemPassing;
+        static Configurable<bool> playerItemMoving;
+        static Configurable<bool> rivDrownProtection;
+        static Configurable<bool> artiBombProtection;
+        static Configurable<bool> bigHeadMode;
+        static Configurable<bool> stunProtection;
+        static Configurable<int> maxStack;
+        static Configurable<bool> mirosBirdProtection;
+        static Configurable<bool> killzoneProtection;
 
 
     }
