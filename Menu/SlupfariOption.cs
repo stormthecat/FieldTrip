@@ -2,6 +2,8 @@
 using System.Linq;
 using UnityEngine;
 using Menu.Remix.MixedUI;
+using BepInEx;
+using System.Collections.Generic;
 
 
 namespace FieldTrip
@@ -81,27 +83,35 @@ namespace FieldTrip
 
                 this.vertOffset = vert_pos;
 
+                float horzOffset = HORIZONTAL + horiOffset;
+                List<UIelement> listOfElements = new List<UIelement>();
 
                 if (type == typeof(bool))
                 {
                     Configurable<bool> option = config as Configurable<bool>;
-                    elements = new UIelement[]
-                    {
-                        new OpCheckBox(option, HORIZONTAL + horiOffset, vert_pos -= mainVertOffset),
-                        new OpLabel(CHECKBOX_LABEL_HORIZONTAL + horiOffset, vert_pos, this.title, true),
-                        new OpLabel(CHECKBOX_LABEL_HORIZONTAL + horiOffset, vert_pos - DESC_OFFSET, this.desc, false),
-                    };
+                    horzOffset = CHECKBOX_LABEL_HORIZONTAL + horiOffset;
+                    listOfElements.Add(new OpCheckBox(option, HORIZONTAL + horiOffset, vert_pos -= mainVertOffset));
                 }
                 else if (type == typeof(int))
                 {
                     Configurable<int> option = config as Configurable<int>;
-                    elements = new UIelement[]
-                    {
-                        new OpTextBox(option, new Vector2(HORIZONTAL + horiOffset, vert_pos -= mainVertOffset), NUM_INPUT_SIZE),
-                        new OpLabel(TEXTBOX_LABEL_HORIZONTAL + NUM_INPUT_SIZE + horiOffset, vert_pos, this.title, true),
-                        new OpLabel(TEXTBOX_LABEL_HORIZONTAL + NUM_INPUT_SIZE + horiOffset, vert_pos - DESC_OFFSET, this.desc, false),
-                    };
+                    horzOffset = TEXTBOX_LABEL_HORIZONTAL + NUM_INPUT_SIZE + horiOffset;
+                    listOfElements.Add(new OpTextBox(option, new Vector2(HORIZONTAL + horiOffset, vert_pos -= mainVertOffset), NUM_INPUT_SIZE));
                 }
+                listOfElements.Add(new OpLabel(horzOffset, vert_pos, this.title, true));
+                if (!this.desc.IsNullOrWhiteSpace())
+                {
+                    string placeholder = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas molestie, est id dapibus elementum, quam risus bibendum erat, et rutrum nunc leo eu quam.";
+                    //OpLabel description = new OpLabel(horzOffset, vert_pos -= DESC_OFFSET, this.desc, false);
+                    OpLabel description = new OpLabel(new Vector2(horzOffset, vert_pos -= DESC_OFFSET), new Vector2(SCROLL_WIDTH - HORIZONTAL * 2 - horzOffset, 0f), placeholder, FLabelAlignment.Left, false);
+                    description.autoWrap = true;
+                    description.verticalAlignment = OpLabel.LabelVAlignment.Top;
+                    listOfElements.Add(description);
+                    vert_pos -= DESC_OFFSET * (description.GetLineCount() - 1);
+                }
+
+                elements = listOfElements.ToArray();
+
                 PopulateLabelBumpBehav();
                 return elements;
             }

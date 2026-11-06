@@ -16,8 +16,8 @@ namespace FieldTrip
         const float KEYBIND_HORIZONTAL_OFFSET = HORIZONTAL + 30f;
 
         //vertical
-        const float CHECKBOX_VERT_OFFSET_PARENT = 80f;
-        const float CHECKBOX_VERT_OFFSET_CHILD = 60f;
+        const float CHECKBOX_VERT_OFFSET_PARENT = 50f;
+        const float CHECKBOX_VERT_OFFSET_CHILD = 40f;
 
         const float KEYBIND_PARAGRAPH_VERT_OFFSET = 100f;
 
@@ -36,9 +36,10 @@ namespace FieldTrip
 
         const float NUM_INPUT_SIZE = 50f;
         const float SCROLL_CONTENT_SIZE = 0f;
+        const float SCROLL_WIDTH = 580f;
 
         Vector2 SCROLL_POS = new(10f, 10f);
-        Vector2 SCROLL_SIZE = new(580f, 500f);
+        Vector2 SCROLL_SIZE = new(SCROLL_WIDTH, 500f);
 
         #endregion
 
@@ -128,6 +129,7 @@ namespace FieldTrip
         public static SlupfariKeyBind passDownKeyBind;
 
         #endregion
+
         SlupfariOptionInterface[] optionUpdateList;
         public OptionsMenu(FieldTripMain plugin)
         {
