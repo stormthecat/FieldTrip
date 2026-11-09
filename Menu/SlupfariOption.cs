@@ -101,9 +101,7 @@ namespace FieldTrip
                 listOfElements.Add(new OpLabel(horzOffset, vert_pos, this.title, true));
                 if (!this.desc.IsNullOrWhiteSpace())
                 {
-                    string placeholder = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas molestie, est id dapibus elementum, quam risus bibendum erat, et rutrum nunc leo eu quam.";
-                    //OpLabel description = new OpLabel(horzOffset, vert_pos -= DESC_OFFSET, this.desc, false);
-                    OpLabel description = new OpLabel(new Vector2(horzOffset, vert_pos -= DESC_OFFSET), new Vector2(SCROLL_WIDTH - HORIZONTAL * 2 - horzOffset, 0f), placeholder, FLabelAlignment.Left, false);
+                    OpLabel description = new OpLabel(new Vector2(horzOffset, vert_pos -= DESC_OFFSET), new Vector2(SCROLL_WIDTH - HORIZONTAL * 2 - horzOffset, 0f), this.desc, FLabelAlignment.Left, false);
                     description.autoWrap = true;
                     description.verticalAlignment = OpLabel.LabelVAlignment.Top;
                     listOfElements.Add(description);
