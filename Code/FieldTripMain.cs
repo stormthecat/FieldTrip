@@ -17,6 +17,7 @@ using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
 using Watcher;
 using static System.Net.Mime.MediaTypeNames;
+using static FieldTrip.OptionCriterion;
 
 
 /*
@@ -28,71 +29,7 @@ using static System.Net.Mime.MediaTypeNames;
  *  X = done
  *  ? = on hold
  * 
- * >>>>> 1.5 <<<<<
- * [X]  FIX OVERLAP
- *          - spears are still broken :(
- *          - top spear is fine, lower spears are less fine
- *          - pipe breaks tower AAAAAAAAA
- * [X]  FIX RIV WARP
- *          - Warp creatures and items in MS_HEART as well
- * [X]  FIX ENDING PUP NOT SPAWNING
- * [X]  RIV CAMPAIGN EXTENDED BREATH TOGGLE
- * [X}  ADD FUNCTION TO HANDLE SETING OBJ POSITIONS + FEEDING PUPS
- * [X]  CHANGE VERSION NUMBER
- * [X]  UPDATE DESC
- * [X]  UNBREAK OVERSEERS
- * 
- * >>>>> 1.6.0 <<<<<
- * [X]  CHANGE VERSION AND WRITE PATCH NOTES
- * [X]  INVESTIGATE JUNGLE LEACHES
- * [X]  FIX GOURM ENDING STARVING PUPS (couldnt replicate)
- * [X]  EXCEPTION TO KILLZONE FOR STACKED PUPS
- * [X]  FIX VERSIONING AND TEST UPDATE
- * [X]  ARTI BOMB RESISTANCE
- * [X]  DELETION MEMLEAK FIX (AI TRACKERS? -- NOPE)
- * [X]  WIPE SLEASERS
- * [X]  RIV WARP RETURNS
- *          - Stop pups from spawning in ceiling
- * [X]  MIROS PROTECTION
- * [X]  STACK STUN PROTECTION
- * [X]  CAMPAIGN SPECIFIC OPTIONS
- * [X]  CONFIGURABLE STACK SIZE
- * [X]  FIX AUTO PALETTE
- * 
- * 
- *  * >>>>> 1.7.0 <<<<<
- * [X]  CHANGE VERSION AND WRITE PATCH NOTES
- * [X]  ADULT PUP STACKING
- * [X]  WATCHER CLOAK
- * [X]  WATCHER WARP
- *          - fix pipes being funky
- * [X]  BARNACLES
- *          - fix collision
- * [X]  TARDIGRADE FIX
- * 
- * 
- *  * >>>>> 1.7.7 <<<<<
- * [0]  CHANGE VERSION AND WRITE PATCH NOTES
- * [0]  ARTI AND RIV CHANGES
- * [0]  MOTHER PASSAGE
- * [0]  FOOD BAR GRAPHICS
- * 
- * 
- * 
- * >>>>> NEED MORE INFO/CONSIDERATION <<<<<
- * [?]  FIX WARP DELETION
- * [?]  FIX MAST ENDING
- * [?]  DMS TAIL FIX
- * [?]  PUPS STOP EATING LIVE FOOD
- * [?]  THE REFACTORING.
- * [0]  JOLLY COOP OVERLAP
- * [0]  HUNTER PUP FIX
- * [0]  SPEARMASTER GRAB FIX
-
-
-//if ((critter as Player)?.AI?.behaviorType == SlugNPCAI.BehaviorType.OnHead) 
-
-*/
+ */
 
 namespace FieldTrip
 {
@@ -100,11 +37,11 @@ namespace FieldTrip
     //[BepInPlugin("yeliah.slugpupFieldtrip", "Slugpup Field Trip", "1.0.0")]
 
 
-    public class FieldTripMain : BaseUnityPlugin
+    public partial class FieldTripMain : BaseUnityPlugin
     {
         public const string PLUGIN_GUID = "yeliah.slugpupFieldtrip";
         public const string PLUGIN_NAME = "Slugpup Safari";
-        public const string PLUGIN_VERSION = "1.8.0";
+        public const string PLUGIN_VERSION = "2.0.0";
 
         private OptionsMenu optionsMenuInstance;
         private bool initialized;
@@ -154,7 +91,6 @@ namespace FieldTrip
             On.Player.LungUpdate += lungUpdateHook;
             On.Player.CanIPickThisUp += canIPickThisUpdate;
             On.MoreSlugcats.SlugNPCAI.PassingGrab += passingGrabHook;
-            On.Player.SlugOnBack.SlugToBack += slugToBackHook;
             On.MirosBirdAI.DoIWantToBiteCreature += mirosDoIBiteHook;
             On.Watcher.WarpPoint.SpawnPendingObject += watcherSpawnPendingObjectHook;
             On.Player.Update += playerUpdateHook;
@@ -165,8 +101,6 @@ namespace FieldTrip
             On.PlayerGraphics.ctor += playerGraphicsCtorHook;
             On.Player.Grabability += playerGrababilityHook;
             On.Watcher.Barnacle.Update += barnacleUpdateHook;
-            On.PlayerGraphics.DrawSprites += playerGraphicsDrawSpriteHook;
-            On.Player.SlugOnBack.DropSlug += playerDropSlughook;
 
             
 
@@ -189,13 +123,12 @@ namespace FieldTrip
                 IL.Creature.Update += creatureUpdateILHook;
                 IL.PlayerGraphics.ctor += playerGraphicsCtorILHook;
                 IL.Watcher.WarpPoint.Update += watcherWarpPointUpdateILHook;
-                IL.Player.SlugOnBack.ChangeOverlap += changeOverlapILHook;
                 //IL.PlayerGraphics.InitiateSprites += playerInitSpritesILHook;
 
             }
             catch (Exception ex)
             {
-                Debug.Log(string.Format("Slugpup Safari: OnModsInit IL failed init error", ex));
+                Debug.Log(string.Format("Slugpup Safari: OnModsInit IL ran into an init error", ex));
                 base.Logger.LogError(ex);
             }
 
@@ -222,92 +155,17 @@ namespace FieldTrip
                 {
                     if (self.room.game.Players[l].realizedCreature != null)
                     {
-                        slugpupTumble(self.room.game.Players[l].realizedCreature as Player);
+                        SlugpupTumble(self.room.game.Players[l].realizedCreature as Player);
                     }
                 }
             }
                 orig(self, eu);
         }
 
-        private void playerDropSlughook(On.Player.SlugOnBack.orig_DropSlug orig, Player.SlugOnBack self)
-        {
-            if (self?.slugcat != null && self.slugcat.isCamo)
-                self.slugcat.ToggleCamo();
-            orig(self);          
-        }
 
-        private void playerGraphicsDrawSpriteHook(On.PlayerGraphics.orig_DrawSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
-        {
-            orig(self, sLeaser, rCam, timeStacker, camPos);
-            
-            for (int i = 0; i < sLeaser.sprites.Length; i++)
-            {
-                if ((i < 9 || i > 11)) //skip these sprites
-                {
-                    if (amIOnTheWatcher(self.player))
-                    {
-                        sLeaser.sprites[i].shader = Custom.rainWorld.Shaders["PlayerSimpleCamo"];
-                        self.useSimpleCamo = true;
-                    }
-                    else if (self.player.SlugCatClass != WatcherEnums.SlugcatStatsName.Watcher && self.useSimpleCamo)
-                    {
-                        //emulate watcher progress decay
-                        if (self.player.isCamo && self.player.camoProgress < 1f)
-                        {
-                            self.player.camoProgress += 0.01f;
-                        }
-                        else if (!self.player.isCamo && self.player.camoProgress > 0f)
-                        {
-                            self.player.camoProgress -= 0.01f;
-                        }
-                    }
-                    if (self.useSimpleCamo)
-                        sLeaser.sprites[i].alpha = 1f - self.player.camoProgress;
-                }
-            }
-        }
+        
 
-        /*private void playerInitSpritesILHook(ILContext il)
-        {
-            try
-            {
-                ILCursor c = new ILCursor(il);
-                c.GotoNext(i => i.MatchLdstr("PlayerCamoMask"));
-                c.GotoPrev(MoveType.After, i => i.Match(OpCodes.Ldelem_Ref),
-                    i => i.Match(OpCodes.Ldc_R4));
-                c.EmitDelegate((float num) =>
-                {
-                    return 200f;
-                });
-            }
-            catch (Exception e)
-            {
-                base.Logger.LogError("playerInitSpritesILHook encountered an error: " + e);
-                throw;
-            }
-        }*/
 
-        private void changeOverlapILHook(ILContext il)
-        {
-            try
-            {
-                ILCursor c = new ILCursor(il);
-                var label = il.DefineLabel();
-                c.GotoNext(MoveType.After, i => i.MatchRet(),
-                    i => i.MatchLdcI4(0));
-                c.Emit(OpCodes.Pop);
-                c.Emit(OpCodes.Ldarg_1);
-                c.Emit(OpCodes.Brtrue, label);
-                c.Emit(OpCodes.Ret);
-                c.MarkLabel(label);
-                c.Emit(OpCodes.Ldc_I4_0);
-            }
-            catch (Exception e)
-            {
-                base.Logger.LogError("changeOverlapILHook encountered an error: " + e);
-                throw;
-            }
-        }
 
         private void watcherWarpPointUpdateILHook(ILContext il)
         {
@@ -508,7 +366,7 @@ namespace FieldTrip
                 {
                     Debug.Log("SLUGPUP SAFARI: saving stack of Player " + (i+1) + "/" + session.Players.Count);
                     grabStackForWarp(self.room.game.Players[i].realizedCreature as Player);
-                    slugpupTumble(self.room.game.Players[i].realizedCreature as Player);
+                    SlugpupTumble(self.room.game.Players[i].realizedCreature as Player);
                 }
             }
             orig(self, newRoom);
@@ -653,12 +511,6 @@ namespace FieldTrip
             return orig(self, creature);
         }
 
-        private void slugToBackHook(On.Player.SlugOnBack.orig_SlugToBack orig, Player.SlugOnBack self, Player playerToBack)
-        {
-            if (OptionsMenu.maxStackOption.GetValue() <= 0)
-                return;
-            orig(self, playerToBack);
-        }
 
         private void graphicsModuleUpdatedILHook(ILContext il)
         {
@@ -966,7 +818,7 @@ namespace FieldTrip
             {
                 AbstractPhysicalObject obj = room.abstractRoom.entities[i] as AbstractPhysicalObject;
                 if (obj.realizedObject is Player plr) //ensure all slugonback data is reset!
-                    slugpupTumble(plr);
+                    SlugpupTumble(plr);
                 obj.LoseAllStuckObjects();
                 //skip player and energy cell
                 if (obj.realizedObject == null || obj.realizedObject is EnergyCell || obj is AbstractCreature)
@@ -992,7 +844,7 @@ namespace FieldTrip
             {
                 AbstractCreature obj = room.abstractRoom.creatures[i];
                 if (obj.realizedObject is Player plr) //ensure all slugonback data is reset!
-                    slugpupTumble(plr);
+                    SlugpupTumble(plr);
                 obj.LoseAllStuckObjects();
                 //skip player and energy cell
                 if (obj.realizedObject == null || obj.creatureTemplate.type == CreatureTemplate.Type.Slugcat)
@@ -1028,7 +880,7 @@ namespace FieldTrip
             {
                 AbstractCreature obj = room.abstractRoom.entitiesInDens[i] as AbstractCreature;
                 if (obj.realizedObject is Player plr) //ensure all slugonback data is reset!
-                    slugpupTumble(plr);
+                    SlugpupTumble(plr);
                 obj.LoseAllStuckObjects();
                 //skip player and energy cell
                 if (obj.realizedObject == null || obj.creatureTemplate.type == CreatureTemplate.Type.Slugcat)
@@ -1111,7 +963,7 @@ namespace FieldTrip
                         {
                             nextSlug.slugOnBack.SlugToBack(slugInHand);
                             self.owner.ReleaseGrasp(i);
-                            adjustTower(self.owner);
+                            AdjustTower(self.owner);
                         }
 
                         
@@ -1121,54 +973,7 @@ namespace FieldTrip
             }
             orig(self, eu);
         }
-        void adjustTower(Player player)
-        {
-            //trying to simulate a shortcut
-            List<AbstractPhysicalObject> allConnectedObjects = player.abstractCreature.GetAllConnectedObjects();
-            Room room = player.room;
- 
 
-            //remove all scugs and delete them from the update list
-            for (int i = 0; i < allConnectedObjects.Count; i++)
-            {
-                if (allConnectedObjects[i].realizedObject != null && allConnectedObjects[i].realizedObject is Player)
-                {
-                    //Debug.Log("SLUGPUP SAFARI: Removing " + allConnectedObjects[i].realizedObject.ToString());
-                    room.RemoveObject(allConnectedObjects[i].realizedObject);
-                    for (int j = 0; j < room.game.cameras[0].spriteLeasers.Count; j++)
-                    {
-                        if (room.game.cameras[0].spriteLeasers[j].drawableObject.Equals(allConnectedObjects[i].realizedObject.graphicsModule))
-                        {
-                            room.game.cameras[0].spriteLeasers[j].RemoveAllSpritesFromContainer();
-                            room.game.cameras[0].spriteLeasers.RemoveAt(j);
-                        }
-                    }
-                    room.CleanOutObjectNotInThisRoom(allConnectedObjects[i].realizedObject);
-                }
-            }
-
-            //add them in order
-            for (int i = 0; i < allConnectedObjects.Count; i++)
-            {
-                if (allConnectedObjects[i].realizedObject != null && allConnectedObjects[i].realizedObject is Player)
-                {
-                    room.AddObject(allConnectedObjects[i].realizedObject);
-                    
-                    //Debug.Log("SLUGPUP SAFARI: ADDED " + allConnectedObjects[i].realizedObject.ToString());
-                }
-            }
-        }
-        bool amIOnTheWatcher(Player pup)
-        {
-            if(ModManager.Watcher && pup?.onBack != null)
-            {
-                if (pup.onBack.SlugCatClass == WatcherEnums.SlugcatStatsName.Watcher)
-                    return true;
-                else
-                    return amIOnTheWatcher(pup.onBack);
-            }
-            return false;
-        }
         private void grabUpdateHook(On.Player.orig_GrabUpdate orig, Player self, bool eu)
         {
             bool shouldIIncrement = false;
@@ -1196,7 +1001,7 @@ namespace FieldTrip
             {
                 self.slugOnBack.increment = true;
             }
-            if(self.spearOnBack != null && self.isNPC && self.AI != null && self.AI.behaviorType == SlugNPCAI.BehaviorType.OnHead)
+            if(self.spearOnBack != null && AmIASlugpupOnHead(self))
             {
                 self.spearOnBack.increment = false;
             }
@@ -1367,24 +1172,12 @@ namespace FieldTrip
             {
                 if(self.slugOnBack != null && self.slugOnBack.HasASlug && self.slugOnBack.slugcat.isNPC)
                 {
-                    slugpupTumble(self.slugOnBack.slugcat);
+                    SlugpupTumble(self.slugOnBack.slugcat);
                 }
             }
                 orig(self, grasp);
         }
-        void slugpupTumble(Player basePup)
-        {
 
-            //recursivly destroy the tower above this slug
-            if (basePup != null)
-            {
-                if (basePup.slugOnBack != null && basePup.slugOnBack.HasASlug)
-                {
-                    slugpupTumble(basePup.slugOnBack.slugcat);
-                    basePup.slugOnBack.DropSlug();
-                }
-            }
-        }
         private void slugToHandHook(On.Player.SlugOnBack.orig_SlugToHand orig, Player.SlugOnBack self, bool eu)
         {
             Player slugToHand = self.slugcat;
@@ -1427,7 +1220,7 @@ namespace FieldTrip
                 if (self.cat.spearOnBack != null && self.cat.spearOnBack.HasASpear)
                     self.cat.spearOnBack.SpearToHand(true);
                 if (self.cat.slugOnBack != null && self.cat.slugOnBack.HasASlug)
-                    slugpupTumble(self.cat);
+                    SlugpupTumble(self.cat);
             }
             //Debug.Log("ANIMINDEX: "+self.cat.animation.ToString());
 
@@ -1440,7 +1233,7 @@ namespace FieldTrip
 
             if (obj != null && OptionsMenu.keepItemEnabledOption.GetValue() && obj.grabbedBy.Any((Creature.Grasp x) => (x != null && x.grabber != null && x.grabber is Player && (x.grabber as Player).isNPC)))
                 return false;
-            else if (obj != null && self.isNPC && self.AI != null && self.AI.behaviorType == SlugNPCAI.BehaviorType.OnHead && (obj.grabbedBy.Any((Creature.Grasp x) => (x != null && x.grabber != null && x.grabber is Player))))
+            else if (obj != null && AmIASlugpupOnHead(self) && (obj.grabbedBy.Any((Creature.Grasp x) => (x != null && x.grabber != null && x.grabber is Player))))
             {
                 return false;
             }
@@ -1539,7 +1332,7 @@ namespace FieldTrip
                 //prevent arti from launching pups with coop on
                 c.EmitDelegate<Func<Player, bool>>((slugcat) =>
                 {
-                    if (!slugcat.isNPC || (OptionsMenu.artificerDontLaunchKidsOption.GetValue() && slugcat.AI != null && slugcat.AI.behaviorType == SlugNPCAI.BehaviorType.OnHead))
+                    if (ArtificerDontLaunchKidsEligible(slugcat))
                     {
                         return false;
                     }
@@ -1697,7 +1490,7 @@ namespace FieldTrip
                 placeholder.MarkLabel(label);
                 c.EmitDelegate<Func<Player, bool>>((slugcat) =>
                 {
-                    if (slugcat.isNPC && (OptionsMenu.pupImpactCushionOption.GetValue() && slugcat.AI != null && slugcat.AI.behaviorType == SlugNPCAI.BehaviorType.OnHead))
+                    if (PupImpactCushionOptionEligible(slugcat))
                     {
                         return true;
                     }
@@ -1783,12 +1576,7 @@ namespace FieldTrip
                 c.Emit(OpCodes.Ldarg_1);
                 c.EmitDelegate<Func<Creature, bool>>((critter) =>
                 {
-                    if (OptionsMenu.leechProtectionOption.GetValue() && (critter is Player) && (critter as Player).AI != null && (critter as Player).AI.behaviorType == SlugNPCAI.BehaviorType.OnHead)
-                    {
-                        //base.Logger.LogDebug("BBBBBBBBBBBB");
-                        return true;
-                    }
-                    return false;
+                    return LeechProtectionOptionEligible(critter as Player);
                 });
                 c.Emit(OpCodes.Brtrue_S, label);
                 c.Emit(OpCodes.Ldarg_0);
@@ -1819,11 +1607,7 @@ namespace FieldTrip
                 //prevent grabbing if conditions are met
                 c.EmitDelegate<Func<bool, Creature, bool>>((val, critter) =>
                 {
-                    if (OptionsMenu.leechProtectionOption.GetValue() && (critter is Player) && (critter as Player).AI != null && (critter as Player).AI.behaviorType == SlugNPCAI.BehaviorType.OnHead)
-                    {
-                        return false;
-                    }
-                    return val;
+                    return LeechProtectionOptionEligible(critter as Player) ? false : val;
                 });
             }
             catch (Exception e)
@@ -1846,12 +1630,7 @@ namespace FieldTrip
                     {
                         return true;
                     }
-                    if (OptionsMenu.coalescipedeProtectionOption.GetValue() && (critter is Player) && (critter as Player).AI != null && (critter as Player).AI.behaviorType == SlugNPCAI.BehaviorType.OnHead)
-                    {
-                        //base.Logger.LogDebug("BBBBBBBBBBBB");
-                        return true;
-                    }
-                    return false;
+                    return CoalescipedeProtectionOptionEligible(critter as Player);
                 });
             }
             catch (Exception e)
