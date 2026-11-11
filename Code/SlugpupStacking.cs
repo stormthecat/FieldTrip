@@ -11,16 +11,16 @@ using Mono.Cecil.Cil;
 
 namespace FieldTrip
 {
-    partial class FieldTripMain
+    public partial class FieldTripMain
     {
-        public void BindOnHooks()
+        public void BindStackingOnHooks()
         {
             On.Player.SlugOnBack.DropSlug += PlayerDropSlug_onHook;
             On.PlayerGraphics.DrawSprites += PlayerGraphicsDrawSprite_onHook;
             On.Player.SlugOnBack.SlugToBack += SlugToBack_onHook;
 
         }
-        public void BindILHooks()
+        public void BindStackingILHooks()
         {
             try
             {

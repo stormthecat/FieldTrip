@@ -4,7 +4,7 @@ using Menu.Remix.MixedUI;
 
 namespace FieldTrip
 {
-    public partial class OptionsMenu : OptionInterface
+    internal partial class OptionsMenu : OptionInterface
     {
         #region Constants
         //horizontal

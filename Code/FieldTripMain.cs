@@ -63,6 +63,8 @@ namespace FieldTrip
                 return;
             }
             this.initialized = true;
+            BindStackingOnHooks();
+            BindWarpingOnHooks();
             On.Player.SlugOnBack.Update += slugOnBackUpdateHook;
             On.Player.GrabUpdate += grabUpdateHook;
             On.Player.Grabbed += grabbedHook;
@@ -77,24 +79,13 @@ namespace FieldTrip
                 Debug.Log(string.Format("Slugpup Safari: OnModsInit options failed init error {0}{1}", this.optionsMenuInstance, ex));
                 base.Logger.LogError(ex);
             }
-            On.MoreSlugcats.MSCRoomSpecificScript.SL_AI_Behavior.Update += rivEndingHook;
-            On.MoreSlugcats.MSCRoomSpecificScript.SpearmasterEnding.Update += spearEndingHook;
-            On.MoreSlugcats.MSCRoomSpecificScript.LC_FINAL.Update += artiEndingHook;
-            On.MoreSlugcats.MSCRoomSpecificScript.MS_bitterstart.Update += bitterHook;
-            On.MoreSlugcats.MSCRoomSpecificScript.MS_CORESTARTUPHEART.Update += coreStartHook;
-            On.MoreSlugcats.MSCRoomSpecificScript.MS_HEARTWARP.Update += heartWarp;
-            On.MoreSlugcats.MSCRoomSpecificScript.OE_CAVE03_warp.Update += OE_CAVE03_warpUpdate;
-            On.RainWorldGame.ExitToVoidSeaSlideShow += voidEndHook;
-            On.SaveState.GrabSavedCreatures += grabSavedCreaturesHook;
-            On.SaveState.GrabSavedObjects += grabSavedObjectsHook;
+
+            On.MirosBirdAI.DoIWantToBiteCreature += mirosDoIBiteHook;
+            On.Player.Update += playerUpdateHook;
             On.MoreSlugcats.SlugNPCAI.Update += SlugNPCUpdateHook_On;
             On.Player.LungUpdate += lungUpdateHook;
             On.Player.CanIPickThisUp += canIPickThisUpdate;
             On.MoreSlugcats.SlugNPCAI.PassingGrab += passingGrabHook;
-            On.MirosBirdAI.DoIWantToBiteCreature += mirosDoIBiteHook;
-            On.Watcher.WarpPoint.SpawnPendingObject += watcherSpawnPendingObjectHook;
-            On.Player.Update += playerUpdateHook;
-            On.Watcher.WarpPoint.NewWorldLoaded_Room += newWorldLoadedHook;
             On.PlayerGraphics.Update += playerGraphicsUpdateHook;
             On.PlayerGraphics.InitiateSprites += playerGraphicsInitSpritesHook;
             On.PlayerGraphics.AddToContainer += playerAddToContainerHook;
@@ -106,6 +97,8 @@ namespace FieldTrip
 
             try
             {
+                BindStackingILHooks();
+                BindWarpingILHooks();
                 IL.MoreSlugcats.SlugNPCAI.Update += SlugNPCUpdateHook;
                 IL.Player.ClassMechanicsArtificer += ArtificerAbilityHook;
                 IL.Player.GrabUpdate += grabUpdateILHook;
@@ -145,28 +138,6 @@ namespace FieldTrip
                 base.Logger.LogError(ex);
             }
         }
-
-        private void OE_CAVE03_warpUpdate(On.MoreSlugcats.MSCRoomSpecificScript.OE_CAVE03_warp.orig_Update orig, MSCRoomSpecificScript.OE_CAVE03_warp self, bool eu)
-        {
-            // Remove pups before warp, otherwise suffer catastrophic consequences (game no worky)
-            if (self.fadeOut != null && self.fadeOut.IsDoneFading() && !self.triggered) // only do it once or game explode (lag)
-            {
-                for (int l = 0; l < self.room.game.Players.Count; l++)
-                {
-                    if (self.room.game.Players[l].realizedCreature != null)
-                    {
-                        SlugpupTumble(self.room.game.Players[l].realizedCreature as Player);
-                    }
-                }
-            }
-                orig(self, eu);
-        }
-
-
-        
-
-
-
         private void watcherWarpPointUpdateILHook(ILContext il)
         {
             try
@@ -694,31 +665,6 @@ namespace FieldTrip
             orig(self);
         }
 
-        private void coreStartHook(On.MoreSlugcats.MSCRoomSpecificScript.MS_CORESTARTUPHEART.orig_Update orig, MSCRoomSpecificScript.MS_CORESTARTUPHEART self, bool eu)
-        {
-            SaveState save = self.room.game.GetStorySession.saveState;
-            Room room = self.room;
-            if (self.primed && self.foundCell != null && self.foundCell.room == room && self.foundCell.usingTime > 0f && !save.miscWorldSaveData.moonHeartRestored)
-            {
-                //save.BringUpToDate(room.game);
-                orig(self, eu);
-                //Debug.Log("SLUGPUP SAFARI: Saving Heart and Core");
-                save.BringUpToDate(room.game);
-                AddItemsToPending(room.abstractRoom,save, false);
-                AddCrittersToPending(room.abstractRoom, save, false);
-                AddItemsToPending(room.world.GetAbstractRoom("MS_HEART"), save, false);
-                AddCrittersToPending(room.world.GetAbstractRoom("MS_HEART"), save, false);
-                save.denPosition = "MS_bitterstart";
-                save.progression.SaveWorldStateAndProgression(false);
-                save.pendingFriendCreatures.Clear();
-                save.pendingObjects.Clear();
-
-            }
-            else
-                orig(self, eu);
-
-        }
-
         void AddItemsToPending(AbstractRoom room, SaveState save, bool eCell)
         {
             for (int n = 0; n < room.entities.Count; n++)
@@ -745,61 +691,7 @@ namespace FieldTrip
                 
             }
         }
-        private void heartWarp(On.MoreSlugcats.MSCRoomSpecificScript.MS_HEARTWARP.orig_Update orig, MSCRoomSpecificScript.MS_HEARTWARP self, bool eu)
-        {
-            if (self.fadeOut != null && self.fadeOut.IsDoneFading() && !self.triggered && self.afterFadeTime > 119f)
-                moveToBitterStart(self.room);
-            orig(self, eu);
-        }
 
-        private void bitterHook(On.MoreSlugcats.MSCRoomSpecificScript.MS_bitterstart.orig_Update orig, MSCRoomSpecificScript.MS_bitterstart self, bool eu)
-        {
-            Vector2 coords = new Vector2(35, 15);
-            Vector2 coordsCreature = new Vector2(700, 300);
-
-            IntVector2 intCoords = new IntVector2(35, 15);
-            AbstractCreature firstAlivePlayer = self.room.game.FirstAlivePlayer;
-            Player player = (self.room.game.Players.Count > 0 && firstAlivePlayer != null) ? (firstAlivePlayer.realizedCreature as Player) : null;
-            if (player != null && self.waitCounter > 0 && !player.inShortcut && player.firstChunk.pos.x <= 700f && self.room.game.cameras[0].currentCameraPosition == 0 && self.fadeIn == null)
-            {
-                self.room.game.SpawnCritters(self.room.game.GetStorySession.saveState.GrabSavedCreatures(firstAlivePlayer, self.room.ToWorldCoordinate(intCoords)), firstAlivePlayer);
-                self.room.game.SpawnObjs(self.room.game.GetStorySession.saveState.GrabSavedObjects(firstAlivePlayer, self.room.ToWorldCoordinate(intCoords)));
-                placeMyFriends(self.room,coordsCreature);
-
-            }
-            orig(self, eu);
-        }
-
-        private void artiEndingHook(On.MoreSlugcats.MSCRoomSpecificScript.LC_FINAL.orig_Update orig, MSCRoomSpecificScript.LC_FINAL self, bool eu)
-        {
-            orig(self, eu);
-            if (self.room.game.GetStorySession.saveState.deathPersistentSaveData.altEnding && !self.triggeredBoss && !self.endingTriggered && self.counter == 1)
-                spawnMyFriends(self.room, new Vector2(2700f, 500f));
-
-        }
-
-        private void spearEndingHook(On.MoreSlugcats.MSCRoomSpecificScript.SpearmasterEnding.orig_Update orig, MSCRoomSpecificScript.SpearmasterEnding self, bool eu)
-        {
-            string oldroom = SaveState.forcedEndRoomToAllowwSave;
-            SaveState.forcedEndRoomToAllowwSave = self.room.abstractRoom.name;
-            orig(self, eu);
-            spawnMyFriends(self.room, new Vector2(540f, 147f));
-            SaveState.forcedEndRoomToAllowwSave = oldroom;
-
-        }
-
-        private void rivEndingHook(On.MoreSlugcats.MSCRoomSpecificScript.SL_AI_Behavior.orig_Update orig, MSCRoomSpecificScript.SL_AI_Behavior self, bool eu)
-        {
-            AbstractCreature firstAlivePlayer = self.room.game.FirstAlivePlayer;
-            Player player = (self.room.game.Players.Count > 0 && firstAlivePlayer != null) ? (firstAlivePlayer.realizedCreature as Player) : null;
-            if(self.counter < 40 && self.fadeIn == null)
-            {
-                placeMyFriends(self.room, new Vector2(1530f, 155f));
-            }
-            orig(self, eu);
-        }
-
-        
         void moveToBitterStart(Room room)
         {
 

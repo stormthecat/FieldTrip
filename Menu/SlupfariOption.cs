@@ -8,7 +8,7 @@ using System.Collections.Generic;
 
 namespace FieldTrip
 {
-    public partial class OptionsMenu
+    internal partial class OptionsMenu
     {
         public class SlupfariOption<T> : SlupfariOptionInterface
         {

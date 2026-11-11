@@ -4,7 +4,7 @@ using Menu.Remix.MixedUI;
 
 namespace FieldTrip
 {
-    public partial class OptionsMenu
+    internal partial class OptionsMenu
     {
         public class SlupfariKeyBind
         {
