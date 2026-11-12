@@ -65,9 +65,9 @@ namespace FieldTrip
             this.initialized = true;
             BindStackingOnHooks();
             BindWarpingOnHooks();
+            BindProtectionsOnHooks();
             On.Player.SlugOnBack.Update += slugOnBackUpdateHook;
             On.Player.GrabUpdate += grabUpdateHook;
-            On.Player.Grabbed += grabbedHook;
             On.Player.SlugOnBack.SlugToHand += slugToHandHook;
             this.optionsMenuInstance = new OptionsMenu(this);
             try
@@ -80,10 +80,8 @@ namespace FieldTrip
                 base.Logger.LogError(ex);
             }
 
-            On.MirosBirdAI.DoIWantToBiteCreature += mirosDoIBiteHook;
             On.Player.Update += playerUpdateHook;
             On.MoreSlugcats.SlugNPCAI.Update += SlugNPCUpdateHook_On;
-            On.Player.LungUpdate += lungUpdateHook;
             On.Player.CanIPickThisUp += canIPickThisUpdate;
             On.MoreSlugcats.SlugNPCAI.PassingGrab += passingGrabHook;
             On.PlayerGraphics.Update += playerGraphicsUpdateHook;
@@ -91,7 +89,6 @@ namespace FieldTrip
             On.PlayerGraphics.AddToContainer += playerAddToContainerHook;
             On.PlayerGraphics.ctor += playerGraphicsCtorHook;
             On.Player.Grabability += playerGrababilityHook;
-            On.Watcher.Barnacle.Update += barnacleUpdateHook;
 
             
 
@@ -99,23 +96,16 @@ namespace FieldTrip
             {
                 BindStackingILHooks();
                 BindWarpingILHooks();
+                BindProtectionsILHooks();
                 IL.MoreSlugcats.SlugNPCAI.Update += SlugNPCUpdateHook;
-                IL.Player.ClassMechanicsArtificer += ArtificerAbilityHook;
                 IL.Player.GrabUpdate += grabUpdateILHook;
                 IL.MoreSlugcats.SlugNPCAI.Move += slugNPCMoveHook;
                 IL.Player.SlugOnBack.Update += slugOnBackUpdateILHook;
-                IL.Player.TerrainImpact += playerTerrainImpactILHook;
-                IL.PlayerGraphics.MSCUpdate += playerGraphicsMSCUpdateHook;
-                IL.Leech.ConsiderOtherCreature += leechConsiderationHook;
-                IL.Leech.Crawl += leechCrawlHook;
-                IL.Spider.ConsiderPrey += spiderConsiderationHook;
+
                 IL.PlayerGraphics.DrawSprites += worldsFunniestILHook;
-                IL.Explosion.Update += explosionUpdateILHook;
-                IL.Player.Stun += playerStunILHook;
+
                 IL.Player.SlugOnBack.GraphicsModuleUpdated += graphicsModuleUpdatedILHook;
-                IL.Creature.Update += creatureUpdateILHook;
                 IL.PlayerGraphics.ctor += playerGraphicsCtorILHook;
-                IL.Watcher.WarpPoint.Update += watcherWarpPointUpdateILHook;
                 //IL.PlayerGraphics.InitiateSprites += playerInitSpritesILHook;
 
             }
@@ -323,26 +313,6 @@ namespace FieldTrip
             self.AddObjectToInternalContainer(onBack, 0);
         }
 
-        private void newWorldLoadedHook(On.Watcher.WarpPoint.orig_NewWorldLoaded_Room orig, WarpPoint self, Room newRoom)
-        {
-            StoryGameSession session = self?.room?.game?.GetStorySession;
-            if (session != null)
-            {
-                if(session.getFieldtripstoryGameSessionVals().pupStack != null)
-                {
-                    Debug.Log("SLUGPUP SAFARI: clear saved stack ");
-                    session.getFieldtripstoryGameSessionVals().pupStack.Clear();
-                }
-                for(int i = 0; i < session.Players.Count; i++)
-                {
-                    Debug.Log("SLUGPUP SAFARI: saving stack of Player " + (i+1) + "/" + session.Players.Count);
-                    grabStackForWarp(self.room.game.Players[i].realizedCreature as Player);
-                    SlugpupTumble(self.room.game.Players[i].realizedCreature as Player);
-                }
-            }
-            orig(self, newRoom);
-        }
-
         private void playerUpdateHook(On.Player.orig_Update orig, Player self, bool eu)
         {
             //Debug.Log(self.ToString() + " camo?: " + self.isCamo);
@@ -358,29 +328,7 @@ namespace FieldTrip
             }
         }
 
-        private void consumeStackForWarp(Player basePup)
-        {
-            StoryGameSession session = basePup.room.world.game.GetStorySession;
-            if (basePup != null && session != null)
-            {
-                Debug.Log("SLUGPUP SAFARI: trying to stack -> " + basePup.ToString());
-                List<Player> pupStack = session.getFieldtripstoryGameSessionVals().pupStack;
-                if(basePup.slugOnBack != null && basePup.slugOnBack.HasASlug)
-                    consumeStackForWarp(basePup.slugOnBack.slugcat);
-                if (pupStack is null)
-                    pupStack = new List<Player>();
-                Debug.Log("\tpupStack queue length -> " + pupStack.Count());
-                int index = pupStack.IndexOf(basePup);
-                if(index <= 0)
-                    Debug.Log("\tcannot stack -> " + basePup.ToString() + ", no base slug found (index:" + index + ")");
-                if (index > 0 && pupStack[index - 1] != null && pupStack[index - 1].slugOnBack != null)
-                {
-                    Debug.Log("\tstacking -> " + basePup.ToString() + " onto " + pupStack[index - 1].ToString());
-                    pupStack[index - 1].slugOnBack.SlugToBack(basePup);
-                    pupStack.RemoveAt(index - 1);
-                }
-            }
-        }
+
         private void grabStackForWarp(Player basePup)
         {
             StoryGameSession session = basePup?.room?.world?.game?.GetStorySession;
@@ -403,16 +351,7 @@ namespace FieldTrip
             }
         }
 
-        private bool watcherSpawnPendingObjectHook(On.Watcher.WarpPoint.orig_SpawnPendingObject orig, WarpPoint self, AbstractPhysicalObject nextObject, bool immediateSpawn)
-        {
-            Player player = nextObject.realizedObject as Player;
-            bool output = orig(self, nextObject, immediateSpawn);
-            if (player != null && output)
-            {
-                consumeStackForWarp(player);
-            }
-            return output;
-        }
+
 
         private void playerGraphicsCtorILHook(ILContext il)
         {
@@ -611,18 +550,6 @@ namespace FieldTrip
             }
         }
 
-        private List<AbstractPhysicalObject> grabSavedObjectsHook(On.SaveState.orig_GrabSavedObjects orig, SaveState self, AbstractCreature player, WorldCoordinate atPos)
-        {
-            self.getFieldtripSaveVals().pendingObjectsBak = new List<string>(self.pendingObjects);
-            return orig(self, player, atPos);
-        }
-
-        private List<string> grabSavedCreaturesHook(On.SaveState.orig_GrabSavedCreatures orig, SaveState self, AbstractCreature player, WorldCoordinate atPos)
-        {
-            self.getFieldtripSaveVals().pendingFriendsBak = new List<string>(self.pendingFriendCreatures);
-            return orig(self, player, atPos);
-        }
-
         private void lungUpdateHook(On.Player.orig_LungUpdate orig, Player self)
         {
             float air = self.airInLungs;
@@ -645,25 +572,6 @@ namespace FieldTrip
             }
         }
 
-
-        private void voidEndHook(On.RainWorldGame.orig_ExitToVoidSeaSlideShow orig, RainWorldGame self)
-        {
-            if(self.manager.upcomingProcess == null && self.IsStorySession)
-            {
-                //Debug.Log("SLUGPUP SAFARI: loading pending items: ");
-                if (self.GetStorySession.saveState.getFieldtripSaveVals().pendingObjectsBak != null)
-                {
-                    self.GetStorySession.saveState.pendingObjects = self.GetStorySession.saveState.getFieldtripSaveVals().pendingObjectsBak;
-                    //Debug.Log("SLUGPUP SAFARI: objects \n" + String.Join("\n", self.GetStorySession.saveState.getFieldtripSaveVals().pendingObjectsBak));
-                }
-                if (self.GetStorySession.saveState.getFieldtripSaveVals().pendingObjectsBak != null)
-                {
-                    self.GetStorySession.saveState.pendingFriendCreatures = self.GetStorySession.saveState.getFieldtripSaveVals().pendingFriendsBak;
-                    //Debug.Log("SLUGPUP SAFARI: friends \n " + String.Join("\n", self.GetStorySession.saveState.getFieldtripSaveVals().pendingFriendsBak));
-                }
-            }    
-            orig(self);
-        }
 
         void AddItemsToPending(AbstractRoom room, SaveState save, bool eCell)
         {
@@ -692,20 +600,9 @@ namespace FieldTrip
             }
         }
 
-        void moveToBitterStart(Room room)
-        {
 
-            //offset ensures coords are different
-            int offset = 0;
-
-            offset = moveFromHeart(room.world.GetAbstractRoom("MS_HEART").realizedRoom, offset);
-            offset = moveFromHeart(room.world.GetAbstractRoom("MS_CORE").realizedRoom, offset);
-
-
-        }
         int moveFromHeart(Room room, int offset)
         {
-            
             for (int i = 0; i < room.abstractRoom.entities.Count; i++)
             {
                 AbstractPhysicalObject obj = room.abstractRoom.entities[i] as AbstractPhysicalObject;
@@ -816,7 +713,7 @@ namespace FieldTrip
                 //iterate over grasps
                 for (int i = 0; i < 2; i++)
                 {
-                    if (self.owner.grasps[i] != null && self.owner.grasps[i].grabbed is Player && self.counter > 10)
+                    if (DoIHaveASlugInThisGrasp(self.owner, i) && self.counter > 10)
                     {
                         int pupTowerSize = 0;
                         //reset grab counter
@@ -835,7 +732,7 @@ namespace FieldTrip
                                 pupTowerSize++;
 
                             }
-                            while (nextSlug.slugOnBack.slugcat != null && nextSlug.slugOnBack.HasASlug)
+                            while (DoIHaveASlugOnMyBack(nextSlug))
                             {
                                 pupTowerSize++;
                                 nextSlug = nextSlug.slugOnBack.slugcat;
@@ -871,7 +768,7 @@ namespace FieldTrip
             bool shouldIIncrement = false;
             for (int n = 0; n < 2; n++)
             {
-                if (self.grasps[n] != null && self.grasps[n].grabbed != null && self.grasps[n].grabbed is Player && (self.grasps[n].grabbed as Player).isNPC && (!(self.grasps[n].grabbed as Player).dead || self.CanIPutDeadSlugOnBack((self.grasps[n].grabbed as Player))))
+                if (DoIHaveASlugNPCInThisGrasp(self, n) && (!(self.grasps[n].grabbed as Player).dead || self.CanIPutDeadSlugOnBack((self.grasps[n].grabbed as Player))))
                 {
                     if (self.input[0].pckp)
                     {
@@ -930,7 +827,7 @@ namespace FieldTrip
                         Player next = self;
                         while (curr!=null)
                         {
-                            if (next.grasps[0] == null && (!next.isNPC || (next.spearOnBack == null || !next.spearOnBack.HasASpear)))
+                            if (next.grasps[0] == null && (!next.isNPC || !DoIHaveASpearOnMyBack(next)))
                             {
                                 if (curr.grasps[0] != null)
                                 {
@@ -941,7 +838,7 @@ namespace FieldTrip
                                     else
                                         curr.SlugcatGrab(obj, 0);
                                 }
-                                else if (curr.isNPC && (curr.spearOnBack != null && curr.spearOnBack.HasASpear))
+                                else if (curr.isNPC && DoIHaveASpearOnMyBack(curr))
                                 {
                                     PhysicalObject obj = curr.spearOnBack.spear;
                                     curr.spearOnBack.DropSpear();
@@ -970,7 +867,7 @@ namespace FieldTrip
             if (next == null)
                 return;
             moveItemsUp(next);
-            if (next.grasps[0] == null && (!next.isNPC || (next.spearOnBack == null || !next.spearOnBack.HasASpear)))
+            if (next.grasps[0] == null && (!next.isNPC || !DoIHaveASpearOnMyBack(next)))
             {
                 //Debug.Log("Current slug: " + curr.ToString() + " Next slug: " + next.ToString());
                 if (curr.grasps[0] != null)
@@ -982,7 +879,7 @@ namespace FieldTrip
                     else
                         curr.SlugcatGrab(obj, 0);
                 }
-                else if (curr.isNPC && (curr.spearOnBack != null && curr.spearOnBack.HasASpear))
+                else if (curr.isNPC && DoIHaveASpearOnMyBack(curr))
                 {
                     PhysicalObject obj = curr.spearOnBack.spear;
                     curr.spearOnBack.DropSpear();
@@ -996,7 +893,7 @@ namespace FieldTrip
         }
         Player getPassCandidate(Player slug)
         {
-            if (slug.slugOnBack == null || !slug.slugOnBack.HasASlug)
+            if (!DoIHaveASlugOnMyBack(slug))
                 return null;
             else if ((!slug.slugOnBack.slugcat.isNPC && !OptionsMenu.playerItemMovingOption.GetValue()))
                 return getPassCandidate(slug.slugOnBack.slugcat);
@@ -1062,7 +959,7 @@ namespace FieldTrip
             //slugpups tumble down if a lower slug is grabbed by an enemy
             if (grasp.grabber is Lizard || grasp.grabber is Vulture || grasp.grabber is BigSpider || grasp.grabber is DropBug)
             {
-                if(self.slugOnBack != null && self.slugOnBack.HasASlug && self.slugOnBack.slugcat.isNPC)
+                if(DoIHaveASlugOnMyBack(self) && self.slugOnBack.slugcat.isNPC)
                 {
                     SlugpupTumble(self.slugOnBack.slugcat);
                 }
@@ -1090,7 +987,7 @@ namespace FieldTrip
             {
                 if (self.cat.animation == Player.AnimationIndex.VineGrab && OptionsMenu.preventDraggingVinesOption.GetValue())
                     self.cat.animation = Player.AnimationIndex.None;
-                if (self.cat.grasps[0] != null && self.cat.grasps[0].grabbed != null)
+                if (DoIHaveSomethingInThisGrasp(self.cat, 0))
                 {
                     if (self.cat.grasps[0].grabbed is Spear && OptionsMenu.allowBackspearOption.GetValue())
                     {
@@ -1109,9 +1006,9 @@ namespace FieldTrip
             }
             else if (self.behaviorType!=null && self.behaviorType != SlugNPCAI.BehaviorType.OnHead)
             {
-                if (self.cat.spearOnBack != null && self.cat.spearOnBack.HasASpear)
+                if (DoIHaveASpearOnMyBack(self.cat))
                     self.cat.spearOnBack.SpearToHand(true);
-                if (self.cat.slugOnBack != null && self.cat.slugOnBack.HasASlug)
+                if (DoIHaveASlugOnMyBack(self.cat))
                     SlugpupTumble(self.cat);
             }
             //Debug.Log("ANIMINDEX: "+self.cat.animation.ToString());

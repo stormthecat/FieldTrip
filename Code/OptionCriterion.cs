@@ -13,11 +13,31 @@ namespace FieldTrip
         // General
         public static bool AmIASlugpupOnHead(Player self)
         {
-            return self != null && self.isNPC && self.AI != null && self.AI.behaviorType != null && self.AI.behaviorType == SlugNPCAI.BehaviorType.OnHead;
+            return self != null && self.isNPC && AmIAnAIOnHead(self.AI);
         }
         public static bool AmIAnAIOnHead(SlugNPCAI self)
         {
             return self != null && self.behaviorType != null && self.behaviorType == SlugNPCAI.BehaviorType.OnHead;
+        }
+        public static bool DoIHaveASlugOnMyBack(Player self)
+        {
+            return self?.slugOnBack != null && self.slugOnBack.HasASlug;
+        }
+        public static bool DoIHaveASpearOnMyBack(Player self)
+        {
+            return self?.spearOnBack != null && self.spearOnBack.HasASpear;
+        }
+        public static bool DoIHaveASlugNPCInThisGrasp(Player player, int graspIndex)
+        {
+            return DoIHaveASlugInThisGrasp(player, graspIndex) && (player.grasps[graspIndex].grabbed as Player).isNPC;
+        }
+        public static bool DoIHaveASlugInThisGrasp(Player player, int graspIndex)
+        {
+            return DoIHaveSomethingInThisGrasp(player, graspIndex) && player.grasps[graspIndex].grabbed is Player;
+        }
+        public static bool DoIHaveSomethingInThisGrasp(Player player, int graspIndex)
+        {
+            return player.grasps[graspIndex] != null && player.grasps[graspIndex].grabbed != null;
         }
         public static bool AmIOnTheWatcher(Player pup)
         {

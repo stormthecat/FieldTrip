@@ -83,6 +83,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Code\OptionalProtections.cs" />
     <Compile Include="Code\SectionTemplate.cs" />
     <Compile Include="Code\WarpAndSpawn.cs" />
     <Compile Include="Code\SlugpupStacking.cs" />

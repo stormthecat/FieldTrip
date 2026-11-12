@@ -6,6 +6,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using Watcher;
+using static FieldTrip.OptionCriterion;
+
 
 namespace FieldTrip
 {
@@ -20,15 +23,15 @@ namespace FieldTrip
             On.MoreSlugcats.MSCRoomSpecificScript.MS_CORESTARTUPHEART.Update += CoreStart_onHook;
             On.MoreSlugcats.MSCRoomSpecificScript.MS_HEARTWARP.Update += HeartWarp_onHook;
             On.MoreSlugcats.MSCRoomSpecificScript.OE_CAVE03_warp.Update += OE_CAVE03_WarpUpdate_onHook;
-
-            On.RainWorldGame.ExitToVoidSeaSlideShow += voidEndHook;
-            On.SaveState.GrabSavedCreatures += grabSavedCreaturesHook;
-            On.Watcher.WarpPoint.SpawnPendingObject += watcherSpawnPendingObjectHook;
-            On.Watcher.WarpPoint.NewWorldLoaded_Room += newWorldLoadedHook;
-            On.SaveState.GrabSavedObjects += grabSavedObjectsHook;
+            On.RainWorldGame.ExitToVoidSeaSlideShow += VoidEnd_onHook;
+            On.SaveState.GrabSavedCreatures += GrabSavedCreatures_onHook;
+            On.SaveState.GrabSavedObjects += GrabSavedObjects_onHook;
+            On.Watcher.WarpPoint.NewWorldLoaded_Room += NewWorldLoaded_onHook;
+            On.Watcher.WarpPoint.SpawnPendingObject += WatcherSpawnPendingObject_onHook;
         }
         public void BindWarpingILHooks()
         {
+            IL.Watcher.WarpPoint.Update += watcherWarpPointUpdateILHook;
 
         }
 
@@ -104,7 +107,7 @@ namespace FieldTrip
         {
             //TODO: CLEAN THIS UP
             if (self.fadeOut != null && self.fadeOut.IsDoneFading() && !self.triggered && self.afterFadeTime > 119f)
-                moveToBitterStart(self.room);
+                MoveToBitterStart(self.room);
             orig(self, eu);
         }
         private void OE_CAVE03_WarpUpdate_onHook(On.MoreSlugcats.MSCRoomSpecificScript.OE_CAVE03_warp.orig_Update orig, MSCRoomSpecificScript.OE_CAVE03_warp self, bool eu)
@@ -123,12 +126,96 @@ namespace FieldTrip
             }
             orig(self, eu);
         }
+        private void VoidEnd_onHook(On.RainWorldGame.orig_ExitToVoidSeaSlideShow orig, RainWorldGame self)
+        {
+            // TODO: double check this
+            if (self.manager.upcomingProcess == null && self.IsStorySession)
+            {
+                if (self.GetStorySession.saveState.getFieldtripSaveVals().pendingObjectsBak != null)
+                {
+                    self.GetStorySession.saveState.pendingObjects = self.GetStorySession.saveState.getFieldtripSaveVals().pendingObjectsBak;
+                }
+                if (self.GetStorySession.saveState.getFieldtripSaveVals().pendingFriendsBak != null)
+                {
+                    self.GetStorySession.saveState.pendingFriendCreatures = self.GetStorySession.saveState.getFieldtripSaveVals().pendingFriendsBak;
+                }
+            }
+            orig(self);
+        }
+        private List<string> GrabSavedCreatures_onHook(On.SaveState.orig_GrabSavedCreatures orig, SaveState self, AbstractCreature player, WorldCoordinate atPos)
+        {
+            self.getFieldtripSaveVals().pendingFriendsBak = new List<string>(self.pendingFriendCreatures);
+            return orig(self, player, atPos);
+        }
+        private List<AbstractPhysicalObject> GrabSavedObjects_onHook(On.SaveState.orig_GrabSavedObjects orig, SaveState self, AbstractCreature player, WorldCoordinate atPos)
+        {
+            self.getFieldtripSaveVals().pendingObjectsBak = new List<string>(self.pendingObjects);
+            return orig(self, player, atPos);
+        }
+        private void NewWorldLoaded_onHook(On.Watcher.WarpPoint.orig_NewWorldLoaded_Room orig, WarpPoint self, Room newRoom)
+        {
+            StoryGameSession session = self?.room?.game?.GetStorySession;
+            if (session != null)
+            {
+                if (session.getFieldtripstoryGameSessionVals().pupStack != null)
+                {
+                    Debug.Log("SLUGPUP SAFARI: clear saved stack ");
+                    session.getFieldtripstoryGameSessionVals().pupStack.Clear();
+                }
+                for (int i = 0; i < session.Players.Count; i++)
+                {
+                    Debug.Log("SLUGPUP SAFARI: saving stack of Player " + (i + 1) + "/" + session.Players.Count);
+                    grabStackForWarp(self.room.game.Players[i].realizedCreature as Player);
+                    SlugpupTumble(self.room.game.Players[i].realizedCreature as Player);
+                }
+            }
+            orig(self, newRoom);
+        }
+        private bool WatcherSpawnPendingObject_onHook(On.Watcher.WarpPoint.orig_SpawnPendingObject orig, WarpPoint self, AbstractPhysicalObject nextObject, bool immediateSpawn)
+        {
+            Player player = nextObject.realizedObject as Player;
+            bool output = orig(self, nextObject, immediateSpawn);
+            if (player != null && output)
+            {
+                ConsumeStackForWarp(player); // yummers
+            }
+            return output;
+        }
         #endregion
         #region IL Hooks
 
         #endregion
         #region Misc
-
+        private void ConsumeStackForWarp(Player basePup)
+        {
+            StoryGameSession session = basePup.room.world.game.GetStorySession;
+            if (basePup != null && session != null)
+            {
+                Debug.Log("SLUGPUP SAFARI: trying to stack -> " + basePup.ToString());
+                List<Player> pupStack = session.getFieldtripstoryGameSessionVals().pupStack;
+                if (DoIHaveASlugOnMyBack(basePup))
+                    ConsumeStackForWarp(basePup.slugOnBack.slugcat);
+                if (pupStack is null)
+                    pupStack = new List<Player>();
+                Debug.Log("\tpupStack queue length -> " + pupStack.Count());
+                int index = pupStack.IndexOf(basePup);
+                if (index <= 0)
+                    Debug.Log("\tcannot stack -> " + basePup.ToString() + ", no base slug found (index:" + index + ")");
+                if (index > 0 && pupStack[index - 1] != null && pupStack[index - 1].slugOnBack != null)
+                {
+                    Debug.Log("\tstacking -> " + basePup.ToString() + " onto " + pupStack[index - 1].ToString());
+                    pupStack[index - 1].slugOnBack.SlugToBack(basePup);
+                    pupStack.RemoveAt(index - 1);
+                }
+            }
+        }
+        void MoveToBitterStart(Room room)
+        {
+            //offset ensures coords are different
+            int offset = 0;
+            offset = moveFromHeart(room.world.GetAbstractRoom("MS_HEART").realizedRoom, offset);
+            offset = moveFromHeart(room.world.GetAbstractRoom("MS_CORE").realizedRoom, offset);
+        }
         #endregion
     }
 }

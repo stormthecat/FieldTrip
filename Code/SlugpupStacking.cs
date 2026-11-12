@@ -19,6 +19,8 @@ namespace FieldTrip
             On.PlayerGraphics.DrawSprites += PlayerGraphicsDrawSprite_onHook;
             On.Player.SlugOnBack.SlugToBack += SlugToBack_onHook;
 
+            On.Player.Grabbed += grabbedHook;
+
         }
         public void BindStackingILHooks()
         {
@@ -113,13 +115,10 @@ namespace FieldTrip
         void SlugpupTumble(Player basePup)
         {
             //recursivly destroy the tower above this slug
-            if (basePup != null)
+            if (DoIHaveASlugOnMyBack(basePup))
             {
-                if (basePup.slugOnBack != null && basePup.slugOnBack.HasASlug)
-                {
-                    SlugpupTumble(basePup.slugOnBack.slugcat);
-                    basePup.slugOnBack.DropSlug();
-                }
+                SlugpupTumble(basePup.slugOnBack.slugcat);
+                basePup.slugOnBack.DropSlug();
             }
         }
         void AdjustTower(Player player)
