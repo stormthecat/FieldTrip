@@ -1,4 +1,6 @@
-﻿using MoreSlugcats;
+﻿using Mono.Cecil.Cil;
+using MonoMod.Cil;
+using MoreSlugcats;
 using RWCustom;
 using System;
 using System.Collections.Generic;
@@ -31,7 +33,7 @@ namespace FieldTrip
         }
         public void BindWarpingILHooks()
         {
-            IL.Watcher.WarpPoint.Update += watcherWarpPointUpdateILHook;
+            IL.Watcher.WarpPoint.Update += WatcherWarpPointUpdate_ilHook;
 
         }
 
@@ -49,10 +51,10 @@ namespace FieldTrip
             //TODO: CLEAN THIS UP
             AbstractCreature firstAlivePlayer = self.room.game.FirstAlivePlayer;
             Player player = (self.room.game.Players.Count > 0 && firstAlivePlayer != null) ? (firstAlivePlayer.realizedCreature as Player) : null;
+
             if (self.counter < 40 && self.fadeIn == null)
-            {
                 placeMyFriends(self.room, new Vector2(1530f, 155f));
-            }
+
             orig(self, eu);
         }
         private void SpearEnding_onHook(On.MoreSlugcats.MSCRoomSpecificScript.SpearmasterEnding.orig_Update orig, MSCRoomSpecificScript.SpearmasterEnding self, bool eu)
@@ -78,7 +80,6 @@ namespace FieldTrip
                 self.room.game.SpawnCritters(self.room.game.GetStorySession.saveState.GrabSavedCreatures(firstAlivePlayer, self.room.ToWorldCoordinate(intCoords)), firstAlivePlayer);
                 self.room.game.SpawnObjs(self.room.game.GetStorySession.saveState.GrabSavedObjects(firstAlivePlayer, self.room.ToWorldCoordinate(intCoords)));
                 placeMyFriends(self.room, coordsCreature);
-
             }
             orig(self, eu);
         }
@@ -132,13 +133,9 @@ namespace FieldTrip
             if (self.manager.upcomingProcess == null && self.IsStorySession)
             {
                 if (self.GetStorySession.saveState.getFieldtripSaveVals().pendingObjectsBak != null)
-                {
                     self.GetStorySession.saveState.pendingObjects = self.GetStorySession.saveState.getFieldtripSaveVals().pendingObjectsBak;
-                }
                 if (self.GetStorySession.saveState.getFieldtripSaveVals().pendingFriendsBak != null)
-                {
                     self.GetStorySession.saveState.pendingFriendCreatures = self.GetStorySession.saveState.getFieldtripSaveVals().pendingFriendsBak;
-                }
             }
             orig(self);
         }
@@ -183,7 +180,55 @@ namespace FieldTrip
         }
         #endregion
         #region IL Hooks
+        private void WatcherWarpPointUpdate_ilHook(ILContext il)
+        {
+            // TODO: figure out why i put this here specifically
+            try
+            {
+                ILCursor c = new ILCursor(il);
+                c.GotoNext(MoveType.Before, i => i.MatchLdarg(0),
+                    i => i.MatchLdfld<UpdatableAndDeletable>("room"),
+                    i => i.MatchLdfld<Room>("game"),
+                    i => i.Match(OpCodes.Callvirt));
+                c.Index++;
+                c.EmitDelegate((WarpPoint self) =>
+                {
+                    List<AbstractPhysicalObject> pending = self.room.game.GetStorySession.pendingWarpPointTransferObjects;
+                    if (pending.Count == 0 || self.MyIdentifyingString() != self.room.game.GetStorySession.pendingWarpPointTransferId || !self.startedPendingSpawn)
+                        return;
 
+                    bool noScugs;
+                    do
+                    {
+                        noScugs = true;
+                        for (int i = 0; i < pending.Count; i++)
+                        {
+                            AbstractCreature creature = pending[i] as AbstractCreature;
+                            if (creature != null && creature.creatureTemplate.type == MoreSlugcatsEnums.CreatureTemplateType.SlugNPC)
+                            {
+                                if (self.SpawnPendingObject(creature, false))
+                                {
+                                    base.Logger.LogMessage("Spawning " + creature.ToString() + " early");
+                                    noScugs = false;
+                                    pending.RemoveAt(i);
+                                    break;
+                                }
+
+                            }
+                        }
+                    }
+                    while (!noScugs);
+                });
+                c.Emit(OpCodes.Ldarg_0);
+
+
+            }
+            catch (Exception e)
+            {
+                base.Logger.LogError("WatcherWarpPointUpdate_ilHook encountered an error: " + e);
+                throw;
+            }
+        }
         #endregion
         #region Misc
         private void ConsumeStackForWarp(Player basePup)

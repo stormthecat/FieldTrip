@@ -393,7 +393,7 @@ namespace FieldTrip
                 );
             rivDrownProtectionOption.AddText(
                 "Rivulet Drowning Immunity",
-                "(Slugpups cannot drown in Rivulet's campaign)"
+                "(Slugpups cannot drown in Rivulet's campaign, and both slugpups and other players will not drown when above a rivulet in a stack)"
                 );
             artiBombProtectionOption.AddText(
                 "Artificer Explosion Immunity",
@@ -409,7 +409,7 @@ namespace FieldTrip
                 );
             mirosBirdProtectionOption.AddText(
                 "Miros Bird Protection",
-                "(Miros Birds will not bite piggybacked slugpups)"
+                "(Miros Birds will not bite piggybacked slugpups and players)"
                 );
             killzoneProtectionOption.AddText(
                 "Killzone Protection",

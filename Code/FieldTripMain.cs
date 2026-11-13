@@ -128,83 +128,20 @@ namespace FieldTrip
                 base.Logger.LogError(ex);
             }
         }
-        private void watcherWarpPointUpdateILHook(ILContext il)
-        {
-            try
-            {
-                ILCursor c = new ILCursor(il);
-                c.GotoNext(MoveType.Before, i => i.MatchLdarg(0),
-                    i => i.MatchLdfld<UpdatableAndDeletable>("room"),
-                    i => i.MatchLdfld<Room>("game"),
-                    i => i.Match(OpCodes.Callvirt));
-                c.Index++;
-                c.EmitDelegate((WarpPoint self) =>
-                {
-                    List<AbstractPhysicalObject> pending = self.room.game.GetStorySession.pendingWarpPointTransferObjects;
-                    if (pending.Count == 0 || self.MyIdentifyingString() != self.room.game.GetStorySession.pendingWarpPointTransferId || !self.startedPendingSpawn)
-                        return;
-                    bool noScugs;
-                    do
-                    {
-                        noScugs = true;
-                        for (int i = 0; i < pending.Count; i++)
-                        {
-                            AbstractCreature creature = pending[i] as AbstractCreature;
-                            if (creature != null && creature.creatureTemplate.type == MoreSlugcatsEnums.CreatureTemplateType.SlugNPC)
-                            {
-                                if (self.SpawnPendingObject(creature, false))
-                                {
-                                    base.Logger.LogMessage("Spawning " + creature.ToString() + " early");
-                                    noScugs = false;
-                                    pending.RemoveAt(i);
-                                    break;
-                                }
-                                
-                            }
-                        }
-                    }
-                    while (!noScugs);
-                });
-                c.Emit(OpCodes.Ldarg_0);
-
-
-            }
-            catch (Exception e)
-            {
-                base.Logger.LogError("watcherWarpPointUpdateILHook encountered an error: " + e);
-                throw;
-            }
-        }
-
-        private void barnacleUpdateHook(On.Watcher.Barnacle.orig_Update orig, Barnacle self, bool eu)
-        {
-            bool collide = true;
-            List<Creature.Grasp> grabbingMe = self.grabbedBy;
-            if (grabbingMe.Count > 0)
-            {
-                for(int i = 0; i < grabbingMe.Count; i++)
-                {
-                    Player player = grabbingMe[i]?.grabber as Player;
-                    if (player != null && player.onBack != null)
-                        collide = false;
-                }
-                
-            }
-            self.CollideWithObjects = collide;
-            orig(self, eu);
-        }
 
         public float isVisibleHook(Func<Player, float> orig_IsVisible, Player self)
         {
             //Debug.Log("IS VISIBLE?");
+            float defVal = orig_IsVisible(self);
             if (self?.onBack != null)
             {
                 return self.onBack.VisibilityBonus;
             }
-            return orig_IsVisible(self);
+            return defVal;
         }
         private Player.ObjectGrabability playerGrababilityHook(On.Player.orig_Grabability orig, Player self, PhysicalObject obj)
         {
+            Player.ObjectGrabability defVal = orig(self, obj);
             Player playerObj = obj as Player;
             if(playerObj != null)
             {
@@ -213,7 +150,7 @@ namespace FieldTrip
                     return Player.ObjectGrabability.BigOneHand;
                 }
             }
-            return orig(self, obj);
+            return defVal;
         }
 
         public void ReceiveSnack(Player player)
@@ -414,13 +351,6 @@ namespace FieldTrip
             }
         }
 
-        private bool mirosDoIBiteHook(On.MirosBirdAI.orig_DoIWantToBiteCreature orig, MirosBirdAI self, AbstractCreature creature)
-        {
-            if ((creature?.realizedCreature as Player) != null && (creature.realizedCreature as Player).onBack != null)
-                return false;
-            return orig(self, creature);
-        }
-
 
         private void graphicsModuleUpdatedILHook(ILContext il)
         {
@@ -547,28 +477,6 @@ namespace FieldTrip
             {
                 base.Logger.LogError("fun cancelled : " + e);
                 throw;
-            }
-        }
-
-        private void lungUpdateHook(On.Player.orig_LungUpdate orig, Player self)
-        {
-            float air = self.airInLungs;
-            bool lungsExhausted = self.lungsExhausted;
-            float drown = self.drown;
-            orig(self);
-            if (self.submerged && self.isNPC &&
-                OptionsMenu.rivDrownProtectionOption.GetValue() && self.abstractCreature.world.game.StoryCharacter == MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
-            {
-                self.airInLungs = air;
-                self.lungsExhausted = lungsExhausted;
-                self.drown = drown;
-                self.airInLungs += 1f / (float)(self.lungsExhausted ? 240 : 60);
-                if (self.airInLungs >= 1f)
-                {
-                    self.airInLungs = 1f;
-                    self.lungsExhausted = false;
-                    self.drown = 0f;
-                }
             }
         }
 
@@ -954,18 +862,7 @@ namespace FieldTrip
                     return isPressed;
             }
         }
-        private void grabbedHook(On.Player.orig_Grabbed orig, Player self, Creature.Grasp grasp)
-        {
-            //slugpups tumble down if a lower slug is grabbed by an enemy
-            if (grasp.grabber is Lizard || grasp.grabber is Vulture || grasp.grabber is BigSpider || grasp.grabber is DropBug)
-            {
-                if(DoIHaveASlugOnMyBack(self) && self.slugOnBack.slugcat.isNPC)
-                {
-                    SlugpupTumble(self.slugOnBack.slugcat);
-                }
-            }
-                orig(self, grasp);
-        }
+
 
         private void slugToHandHook(On.Player.SlugOnBack.orig_SlugToHand orig, Player.SlugOnBack self, bool eu)
         {
@@ -1018,16 +915,13 @@ namespace FieldTrip
         }
         private bool canIPickThisUpdate(On.Player.orig_CanIPickThisUp orig, Player self, PhysicalObject obj)
         {
-            //Debug.Log(self.ToString() + " wants to grab " + obj.ToString());
-
+            bool defVal = orig(self, obj);
             if (obj != null && OptionsMenu.keepItemEnabledOption.GetValue() && obj.grabbedBy.Any((Creature.Grasp x) => (x != null && x.grabber != null && x.grabber is Player && (x.grabber as Player).isNPC)))
                 return false;
             else if (obj != null && AmIASlugpupOnHead(self) && (obj.grabbedBy.Any((Creature.Grasp x) => (x != null && x.grabber != null && x.grabber is Player))))
-            {
                 return false;
-            }
             else
-                return orig(self, obj);
+                return defVal;
         }
         private void passingGrabHook(On.MoreSlugcats.SlugNPCAI.orig_PassingGrab orig, SlugNPCAI self)
         {
@@ -1109,47 +1003,7 @@ namespace FieldTrip
                 throw;
             }
         }
-        private void ArtificerAbilityHook(ILContext il)
-        {
-            try
-            {
 
-                ILCursor c = new ILCursor(il);
-                c.GotoNext(i => i.MatchLdfld<Options>("friendlyFire"));
-                c.GotoNext(i => i.MatchCallvirt<Player>("get_isNPC"));
-                c.Remove();
-                //prevent arti from launching pups with coop on
-                c.EmitDelegate<Func<Player, bool>>((slugcat) =>
-                {
-                    if (ArtificerDontLaunchKidsEligible(slugcat))
-                    {
-                        return false;
-                    }
-                    return true;
-                });
-                c.GotoNext(i => i.MatchLdcI4(1));
-                c.GotoNext(i => i.MatchLdcI4(1));
-                c.Index++;
-                c.Emit(OpCodes.Pop);
-                c.Emit(OpCodes.Ldarg_0);
-                c.Emit(OpCodes.Ldloc, 16);
-                c.Emit(OpCodes.Ldloc, 17);
-                //prevent arti from launching pups when coop is off
-                c.EmitDelegate<Func<UpdatableAndDeletable,int,int,bool>>((self, m, n) =>{
-                    Player player = self.room.physicalObjects[m][n] as Player;
-                    if (player == null||!player.isNPC||player.AI == null||player.AI.behaviorType!=SlugNPCAI.BehaviorType.OnHead||!OptionsMenu.artificerDontLaunchKidsOption.GetValue())
-                    {
-                        return true;
-                    }
-                    return false;
-                });
-            }
-            catch (Exception e)
-            {
-                base.Logger.LogError("ArtificerAbilityHook encountered an error: " + e);
-                throw;
-            }
-        }
         private void grabUpdateILHook(ILContext il)
         {
             //this prevents throwing pups

@@ -50,6 +50,17 @@ namespace FieldTrip
             }
             return false;
         }
+        public static bool AmIOnTheRivulet(Player pup)
+        {
+            if (ModManager.MSC && pup?.onBack != null)
+            {
+                if (pup.onBack.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
+                    return true;
+                else
+                    return AmIOnTheRivulet(pup.onBack);
+            }
+            return false;
+        }
 
         // Specific Options
         public static bool ArtificerDontLaunchKidsEligible(Player player)
@@ -67,6 +78,18 @@ namespace FieldTrip
         public static bool CoalescipedeProtectionOptionEligible(Player player)
         {
             return OptionsMenu.coalescipedeProtectionOption.GetValue() && AmIASlugpupOnHead(player);
+        }
+        public static bool MirosBirdProtectionOptionEligible(AbstractCreature creature)
+        {
+            Player player = creature?.realizedCreature as Player;
+            return OptionsMenu.mirosBirdProtectionOption.GetValue() && player?.onBack != null;
+        }
+        public static bool RivDrownProtectionOptionEligible(Player player)
+        {
+            if (!player.submerged || !OptionsMenu.rivDrownProtectionOption.GetValue())
+                return false;
+            bool correctCampaign = player.isNPC && player.abstractCreature.world.game.StoryCharacter == MoreSlugcatsEnums.SlugcatStatsName.Rivulet;
+            return  AmIOnTheRivulet(player) || correctCampaign;
         }
     }
 }

@@ -15,12 +15,10 @@ namespace FieldTrip
     {
         public void BindStackingOnHooks()
         {
+            On.Player.Grabbed += Grabbed_onHook;
             On.Player.SlugOnBack.DropSlug += PlayerDropSlug_onHook;
             On.PlayerGraphics.DrawSprites += PlayerGraphicsDrawSprite_onHook;
             On.Player.SlugOnBack.SlugToBack += SlugToBack_onHook;
-
-            On.Player.Grabbed += grabbedHook;
-
         }
         public void BindStackingILHooks()
         {
@@ -37,6 +35,13 @@ namespace FieldTrip
         }
 
         #region On Hooks
+        private void Grabbed_onHook(On.Player.orig_Grabbed orig, Player self, Creature.Grasp grasp)
+        {
+            orig(self, grasp);
+            //slugpups tumble down if a lower slug is grabbed by an enemy
+            if(self.dangerGrasp != null && DoIHaveASlugOnMyBack(self))
+                SlugpupTumble(self.slugOnBack.slugcat);
+        }
         private void PlayerDropSlug_onHook(On.Player.SlugOnBack.orig_DropSlug orig, Player.SlugOnBack self)
         {
             // Toggle camo on drop
@@ -47,13 +52,13 @@ namespace FieldTrip
         private void PlayerGraphicsDrawSprite_onHook(On.PlayerGraphics.orig_DrawSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
         {
             orig(self, sLeaser, rCam, timeStacker, camPos);
-            
+            bool amIOnTheWatcher = AmIOnTheWatcher(self.player);
             // handle watcher camo on piggybacked scugs
             for (int i = 0; i < sLeaser.sprites.Length; i++)
             {
                 if ((i < 9 || i > 11)) //skip these sprites
                 {
-                    if (AmIOnTheWatcher(self.player))
+                    if (amIOnTheWatcher)
                     {
                         sLeaser.sprites[i].shader = Custom.rainWorld.Shaders["PlayerSimpleCamo"];
                         self.useSimpleCamo = true;
@@ -62,13 +67,9 @@ namespace FieldTrip
                     {
                         //emulate watcher progress decay
                         if (self.player.isCamo && self.player.camoProgress < 1f)
-                        {
                             self.player.camoProgress += 0.01f;
-                        }
                         else if (!self.player.isCamo && self.player.camoProgress > 0f)
-                        {
                             self.player.camoProgress -= 0.01f;
-                        }
                     }
                     if (self.useSimpleCamo)
                         sLeaser.sprites[i].alpha = 1f - self.player.camoProgress;
@@ -130,31 +131,30 @@ namespace FieldTrip
             //remove all scugs and delete them from the update list
             for (int i = 0; i < allConnectedObjects.Count; i++)
             {
-                if (allConnectedObjects[i].realizedObject != null && allConnectedObjects[i].realizedObject is Player)
+                PhysicalObject currObj = allConnectedObjects[i].realizedObject;
+                if (currObj != null && currObj is Player)
                 {
                     //Debug.Log("SLUGPUP SAFARI: Removing " + allConnectedObjects[i].realizedObject.ToString());
-                    room.RemoveObject(allConnectedObjects[i].realizedObject);
+                    room.RemoveObject(currObj);
                     List<RoomCamera.SpriteLeaser> spriteLeasers = room.game.cameras[0].spriteLeasers;
                     for (int j = 0; j < spriteLeasers.Count; j++)
                     {
-                        if (spriteLeasers[j].drawableObject.Equals(allConnectedObjects[i].realizedObject.graphicsModule))
+                        if (spriteLeasers[j].drawableObject.Equals(currObj.graphicsModule))
                         {
                             spriteLeasers[j].RemoveAllSpritesFromContainer();
                             spriteLeasers.RemoveAt(j);
                         }
                     }
-                    room.CleanOutObjectNotInThisRoom(allConnectedObjects[i].realizedObject);
+                    room.CleanOutObjectNotInThisRoom(currObj);
                 }
             }
 
             //add them in order
             for (int i = 0; i < allConnectedObjects.Count; i++)
             {
-                if (allConnectedObjects[i].realizedObject != null && allConnectedObjects[i].realizedObject is Player)
-                {
-                    room.AddObject(allConnectedObjects[i].realizedObject);
-                    //Debug.Log("SLUGPUP SAFARI: ADDED " + allConnectedObjects[i].realizedObject.ToString());
-                }
+                PhysicalObject currObj = allConnectedObjects[i].realizedObject;
+                if (currObj != null && currObj is Player)
+                    room.AddObject(currObj);
             }
         }
         #endregion
