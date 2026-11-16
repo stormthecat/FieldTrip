@@ -91,5 +91,10 @@ namespace FieldTrip
             bool correctCampaign = player.isNPC && player.abstractCreature.world.game.StoryCharacter == MoreSlugcatsEnums.SlugcatStatsName.Rivulet;
             return  AmIOnTheRivulet(player) || correctCampaign;
         }
+        public static bool KillzoneProtectionOptionEligible(Creature creature)
+        {
+            Player player = creature as Player;
+            return OptionsMenu.killzoneProtectionOption.GetValue() && player?.onBack != null;
+        }
     }
 }

@@ -320,36 +320,6 @@ namespace FieldTrip
         }
 
         
-        private void creatureUpdateILHook(ILContext il)
-        {
-            try
-            {
-                ILCursor c = new ILCursor(il);
-                c.GotoNext(MoveType.After, i => i.MatchLdstr("{0} Fell out of room!"));
-                c.GotoNext(MoveType.Before, i => i.MatchLdsfld<ModManager>("CoopAvailable"));
-                ILCursor placeholder = new ILCursor(c);
-                placeholder.GotoNext(MoveType.After, i => i.MatchCallvirt<AbstractWorldEntity>("Destroy"));
-                var label = il.DefineLabel();
-                placeholder.MarkLabel(label);
-                c.Emit(OpCodes.Ldarg_0);
-                c.EmitDelegate<Func<Creature, bool>>((creature) =>
-                {
-                    Player player = creature as Player;
-                    if (player == null)
-                        return false;
-                    //base.Logger.LogMessage("Prevented killzone death");
-                    return (OptionsMenu.killzoneProtectionOption.GetValue() && player.onBack != null);
-                });
-                c.Emit(OpCodes.Brtrue, label);
-
-
-            }
-            catch (Exception e)
-            {
-                base.Logger.LogError("creatureUpdateILHook encountered an error : " + e);
-                throw;
-            }
-        }
 
 
         private void graphicsModuleUpdatedILHook(ILContext il)
@@ -395,64 +365,7 @@ namespace FieldTrip
             }
         }
 
-        private void explosionUpdateILHook(ILContext il)
-        {
-            try
-            {
-                ILCursor c = new ILCursor(il);
 
-                while (c.TryGotoNext(MoveType.Before,
-                    x => x.MatchIsinst("Player"),
-                    x => x.MatchLdfld<Player>("SlugCatClass"),
-                    x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>("Artificer"),
-                    x => x.MatchCall(typeof(ExtEnum<SlugcatStats.Name>).GetMethod("op_Equality"))))
-                {
-                    //base.Logger.LogMessage("explosionUpdateILHook found an arti check");
-                    Player player = null;
-                    c.EmitDelegate<Func<object, object>>((obj) =>
-                    { 
-                        player = (Player)obj;
-                        return obj;
-                    });
-                    c.Index += 4;
-                    c.EmitDelegate<Func<bool, bool>>((var) =>
-                    {
-                        
-                        if (OptionsMenu.artiBombProtectionOption.GetValue() && player?.AI != null && player.room.game.StoryCharacter == MoreSlugcatsEnums.SlugcatStatsName.Artificer)
-                            return true;
-                        return var;
-                    });
-                }
-                c = new ILCursor(il);
-                while (c.TryGotoNext(MoveType.Before,
-                    x => x.MatchIsinst("Player"),
-                    x => x.MatchLdfld<Player>("SlugCatClass"),
-                    x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>("Artificer"),
-                    x => x.MatchCall(typeof(ExtEnum<SlugcatStats.Name>).GetMethod("op_Inequality"))))
-                {
-                    //base.Logger.LogMessage("explosionUpdateILHook found an arti check");
-
-                    Player player = null;
-                    c.EmitDelegate<Func<object, object>>((obj) =>
-                    {
-                        player = (Player)obj;
-                        return obj;
-                    });
-                    c.Index += 4;
-                    c.EmitDelegate<Func<bool, bool>>((var) =>
-                    {
-                        if (OptionsMenu.artiBombProtectionOption.GetValue() && player?.AI != null && player.room.game.StoryCharacter == MoreSlugcatsEnums.SlugcatStatsName.Artificer)
-                            return false;
-                        return var;
-                    });
-                }
-            }
-            catch (Exception e)
-            {
-                base.Logger.LogError("explosionUpdateILHook encountered an error : " + e);
-                throw;
-            }
-        }
 
         private void worldsFunniestILHook(ILContext il)
         {

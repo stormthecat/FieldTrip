@@ -23,8 +23,8 @@ namespace FieldTrip
         }
         public void BindProtectionsILHooks()
         {
-            IL.Player.ClassMechanicsArtificer += ArtificerAbilityHook;
-            IL.Creature.Update += creatureUpdateILHook;
+            IL.Player.ClassMechanicsArtificer += ArtificerAbility_ilHook;
+            IL.Creature.Update += CreatureUpdate_ilHook;
             IL.Explosion.Update += explosionUpdateILHook;
             IL.Leech.ConsiderOtherCreature += leechConsiderationHook;
             IL.Leech.Crawl += leechCrawlHook;
@@ -82,43 +82,110 @@ namespace FieldTrip
         }
         #endregion
         #region IL Hooks
-        private void ArtificerAbilityHook(ILContext il)
+        private void ArtificerAbility_ilHook(ILContext il)
         {
             try
             {
                 ILCursor c = new ILCursor(il);
-                c.GotoNext(i => i.MatchLdfld<Options>("friendlyFire"));
-                c.GotoNext(i => i.MatchCallvirt<Player>("get_isNPC"));
-                c.Remove();
-                //prevent arti from launching pups with coop on
-                c.EmitDelegate<Func<Player, bool>>((slugcat) =>
-                {
-                    if (ArtificerDontLaunchKidsEligible(slugcat))
-                    {
-                        return false;
-                    }
-                    return true;
-                });
-                c.GotoNext(i => i.MatchLdcI4(1));
-                c.GotoNext(i => i.MatchLdcI4(1));
-                c.Index++;
-                c.Emit(OpCodes.Pop);
+                //prevent arti from launching piggybacked slugs
+                c.GotoNext(MoveType.After, i => i.MatchStloc(18)); // modifies flag4
+                c.Emit(OpCodes.Ldloc, 18); // load flag4 again
                 c.Emit(OpCodes.Ldarg_0);
                 c.Emit(OpCodes.Ldloc, 16);
                 c.Emit(OpCodes.Ldloc, 17);
-                //prevent arti from launching pups when coop is off
-                c.EmitDelegate<Func<UpdatableAndDeletable, int, int, bool>>((self, m, n) => {
+                c.EmitDelegate<Func<bool, UpdatableAndDeletable, int, int, bool>>((val, self, m, n) => {
                     Player player = self.room.physicalObjects[m][n] as Player;
-                    if (player == null || !player.isNPC || player.AI == null || player.AI.behaviorType != SlugNPCAI.BehaviorType.OnHead || !OptionsMenu.artificerDontLaunchKidsOption.GetValue())
-                    {
-                        return true;
-                    }
-                    return false;
+                    return val && !ArtificerDontLaunchKidsEligible(player);
                 });
+                c.Emit(OpCodes.Stloc, 18); // set the new flag4
             }
             catch (Exception e)
             {
-                base.Logger.LogError("ArtificerAbilityHook encountered an error: " + e);
+                base.Logger.LogError("ArtificerAbility_ilHook encountered an error: " + e);
+                throw;
+            }
+        }
+        private void CreatureUpdate_ilHook(ILContext il)
+        {
+            try
+            {
+                ILCursor c = new ILCursor(il);
+                c.GotoNext(MoveType.After, i => i.MatchLdstr("{0} Fell out of room!"));
+                c.GotoNext(MoveType.Before, i => i.MatchLdsfld<ModManager>("CoopAvailable")); // skip to beginning of code that kills you
+
+                ILCursor placeholder = new ILCursor(c); // label after the code that kills you
+                placeholder.GotoNext(MoveType.After, i => i.MatchCallvirt<AbstractWorldEntity>("Destroy"));
+                var label = il.DefineLabel();
+                placeholder.MarkLabel(label);
+
+                c.Emit(OpCodes.Ldarg_0);
+                c.EmitDelegate<Func<Creature, bool>>((creature) =>
+                {
+                    return KillzoneProtectionOptionEligible(creature);
+                });
+                c.Emit(OpCodes.Brtrue, label); // skip the code that kills you if option is enabled
+            }
+            catch (Exception e)
+            {
+                base.Logger.LogError("CreatureUpdate_ilHook encountered an error : " + e);
+                throw;
+            }
+        }
+        private void explosionUpdateILHook(ILContext il)
+        {
+            try
+            {
+                ILCursor c = new ILCursor(il);
+
+                while (c.TryGotoNext(MoveType.Before,
+                    x => x.MatchIsinst("Player"),
+                    x => x.MatchLdfld<Player>("SlugCatClass"),
+                    x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>("Artificer"),
+                    x => x.MatchCall(typeof(ExtEnum<SlugcatStats.Name>).GetMethod("op_Equality"))))
+                {
+                    //base.Logger.LogMessage("explosionUpdateILHook found an arti check");
+                    Player player = null;
+                    c.EmitDelegate<Func<object, object>>((obj) =>
+                    {
+                        player = (Player)obj;
+                        return obj;
+                    });
+                    c.Index += 4;
+                    c.EmitDelegate<Func<bool, bool>>((var) =>
+                    {
+
+                        if (OptionsMenu.artiBombProtectionOption.GetValue() && player?.AI != null && player.room.game.StoryCharacter == MoreSlugcatsEnums.SlugcatStatsName.Artificer)
+                            return true;
+                        return var;
+                    });
+                }
+                c = new ILCursor(il);
+                while (c.TryGotoNext(MoveType.Before,
+                    x => x.MatchIsinst("Player"),
+                    x => x.MatchLdfld<Player>("SlugCatClass"),
+                    x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>("Artificer"),
+                    x => x.MatchCall(typeof(ExtEnum<SlugcatStats.Name>).GetMethod("op_Inequality"))))
+                {
+                    //base.Logger.LogMessage("explosionUpdateILHook found an arti check");
+
+                    Player player = null;
+                    c.EmitDelegate<Func<object, object>>((obj) =>
+                    {
+                        player = (Player)obj;
+                        return obj;
+                    });
+                    c.Index += 4;
+                    c.EmitDelegate<Func<bool, bool>>((var) =>
+                    {
+                        if (OptionsMenu.artiBombProtectionOption.GetValue() && player?.AI != null && player.room.game.StoryCharacter == MoreSlugcatsEnums.SlugcatStatsName.Artificer)
+                            return false;
+                        return var;
+                    });
+                }
+            }
+            catch (Exception e)
+            {
+                base.Logger.LogError("explosionUpdateILHook encountered an error : " + e);
                 throw;
             }
         }
