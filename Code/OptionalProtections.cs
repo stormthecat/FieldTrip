@@ -25,7 +25,7 @@ namespace FieldTrip
         {
             IL.Player.ClassMechanicsArtificer += ArtificerAbility_ilHook;
             IL.Creature.Update += CreatureUpdate_ilHook;
-            IL.Explosion.Update += explosionUpdateILHook;
+            IL.Explosion.Update += ExplosionUpdate_ilHook;
             IL.Leech.ConsiderOtherCreature += leechConsiderationHook;
             IL.Leech.Crawl += leechCrawlHook;
             IL.PlayerGraphics.MSCUpdate += playerGraphicsMSCUpdateHook;
@@ -93,7 +93,7 @@ namespace FieldTrip
                 c.Emit(OpCodes.Ldarg_0);
                 c.Emit(OpCodes.Ldloc, 16);
                 c.Emit(OpCodes.Ldloc, 17);
-                c.EmitDelegate<Func<bool, UpdatableAndDeletable, int, int, bool>>((val, self, m, n) => {
+                c.EmitDelegate((bool val, UpdatableAndDeletable self, int m, int n) => {
                     Player player = self.room.physicalObjects[m][n] as Player;
                     return val && !ArtificerDontLaunchKidsEligible(player);
                 });
@@ -119,7 +119,7 @@ namespace FieldTrip
                 placeholder.MarkLabel(label);
 
                 c.Emit(OpCodes.Ldarg_0);
-                c.EmitDelegate<Func<Creature, bool>>((creature) =>
+                c.EmitDelegate((Creature creature) =>
                 {
                     return KillzoneProtectionOptionEligible(creature);
                 });
@@ -131,61 +131,76 @@ namespace FieldTrip
                 throw;
             }
         }
-        private void explosionUpdateILHook(ILContext il)
+        private void ExplosionUpdate_ilHook(ILContext il)
         {
+            // treat scug as arti when under the correct conditions
             try
             {
                 ILCursor c = new ILCursor(il);
-
-                while (c.TryGotoNext(MoveType.Before,
+                while (c.TryGotoNext(MoveType.After,
                     x => x.MatchIsinst("Player"),
                     x => x.MatchLdfld<Player>("SlugCatClass"),
-                    x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>("Artificer"),
-                    x => x.MatchCall(typeof(ExtEnum<SlugcatStats.Name>).GetMethod("op_Equality"))))
+                    x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>("Artificer")))
                 {
-                    //base.Logger.LogMessage("explosionUpdateILHook found an arti check");
-                    Player player = null;
-                    c.EmitDelegate<Func<object, object>>((obj) =>
-                    {
-                        player = (Player)obj;
-                        return obj;
-                    });
-                    c.Index += 4;
-                    c.EmitDelegate<Func<bool, bool>>((var) =>
-                    {
+                    Instruction nextInstruction = c.Next; // get instruction after ldsfld match
+                    c.Index -= 3; // go to beginning of match
 
-                        if (OptionsMenu.artiBombProtectionOption.GetValue() && player?.AI != null && player.room.game.StoryCharacter == MoreSlugcatsEnums.SlugcatStatsName.Artificer)
-                            return true;
-                        return var;
-                    });
-                }
-                c = new ILCursor(il);
-                while (c.TryGotoNext(MoveType.Before,
-                    x => x.MatchIsinst("Player"),
-                    x => x.MatchLdfld<Player>("SlugCatClass"),
-                    x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>("Artificer"),
-                    x => x.MatchCall(typeof(ExtEnum<SlugcatStats.Name>).GetMethod("op_Inequality"))))
-                {
-                    //base.Logger.LogMessage("explosionUpdateILHook found an arti check");
-
-                    Player player = null;
-                    c.EmitDelegate<Func<object, object>>((obj) =>
+                    bool? equality = null;
+                    if (nextInstruction.MatchCall(typeof(ExtEnum<SlugcatStats.Name>).GetMethod("op_Equality")))
+                        equality = true;
+                    else if (nextInstruction.MatchCall(typeof(ExtEnum<SlugcatStats.Name>).GetMethod("op_Inequality")))
+                        equality = false;
+                    if(equality != null)
                     {
-                        player = (Player)obj;
-                        return obj;
-                    });
-                    c.Index += 4;
-                    c.EmitDelegate<Func<bool, bool>>((var) =>
-                    {
-                        if (OptionsMenu.artiBombProtectionOption.GetValue() && player?.AI != null && player.room.game.StoryCharacter == MoreSlugcatsEnums.SlugcatStatsName.Artificer)
-                            return false;
-                        return var;
-                    });
+                        Player player = null;
+                        c.EmitDelegate((object obj) =>
+                        {
+                            player = (Player)obj;
+                            return obj;
+                        });
+                        c.Index += 4; // go back to the end of match
+                        c.EmitDelegate((bool var) =>
+                        {
+                            return (equality == ArtiBombProtectionOptionEligible(player)) || var;
+                        });
+                    }
                 }
             }
             catch (Exception e)
             {
-                base.Logger.LogError("explosionUpdateILHook encountered an error : " + e);
+                base.Logger.LogError("ExplosionUpdate_ilHook encountered an error : " + e);
+                throw;
+            }
+        }
+        private void leechConsiderationHook(ILContext il)
+        {
+            try
+            {
+                ILCursor c = new ILCursor(il);
+                c.GotoNext(MoveType.After, i => i.MatchLdarg(1),
+                    i => i.MatchIsinst("Leech"),
+                    i => i.Match(OpCodes.Brfalse));
+                c.GotoNext(MoveType.Before, i => i.MatchLdarg(0),
+                    i => i.MatchCall<Creature>("get_Template"),
+                    i => i.MatchLdarg(1));
+
+                c.Index++;
+                c.Emit(OpCodes.Pop);
+                ILCursor placeholder = new ILCursor(c);
+                placeholder.GotoNext(i => i.MatchRet());
+                var label = il.DefineLabel();
+                placeholder.MarkLabel(label);
+                c.Emit(OpCodes.Ldarg_1);
+                c.EmitDelegate<Func<Creature, bool>>((critter) =>
+                {
+                    return LeechProtectionOptionEligible(critter as Player);
+                });
+                c.Emit(OpCodes.Brtrue_S, label);
+                c.Emit(OpCodes.Ldarg_0);
+            }
+            catch (Exception e)
+            {
+                base.Logger.LogError("leechConsiderationHook encountered an error: " + e);
                 throw;
             }
         }

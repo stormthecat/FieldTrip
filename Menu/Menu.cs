@@ -397,7 +397,7 @@ namespace FieldTrip
                 );
             artiBombProtectionOption.AddText(
                 "Artificer Explosion Immunity",
-                "(Slugpups resist explosions in Artificer's campaign)"
+                "(Slugpups resist explosions in Artificer's campaign, and both slugpups and other players will not die to explosions when above an artificer in a stack)"
                 );
             bigHeadModeOption.AddText(
                 "Big Brain Mode",

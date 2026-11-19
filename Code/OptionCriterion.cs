@@ -41,23 +41,24 @@ namespace FieldTrip
         }
         public static bool AmIOnTheWatcher(Player pup)
         {
-            if (ModManager.Watcher && pup?.onBack != null)
-            {
-                if (pup.onBack.SlugCatClass == WatcherEnums.SlugcatStatsName.Watcher)
-                    return true;
-                else
-                    return AmIOnTheWatcher(pup.onBack);
-            }
-            return false;
+            return ModManager.Watcher && AmIOnThisCat(pup, WatcherEnums.SlugcatStatsName.Watcher);
         }
         public static bool AmIOnTheRivulet(Player pup)
         {
-            if (ModManager.MSC && pup?.onBack != null)
+            return ModManager.MSC && AmIOnThisCat(pup,  MoreSlugcatsEnums.SlugcatStatsName.Rivulet);
+        }
+        public static bool AmIOnTheArtificer(Player pup)
+        {
+            return ModManager.MSC && AmIOnThisCat(pup, MoreSlugcatsEnums.SlugcatStatsName.Artificer);
+        }
+        public static bool AmIOnThisCat(Player pup, SlugcatStats.Name name)
+        {
+            if (pup?.onBack != null)
             {
-                if (pup.onBack.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
+                if (pup.onBack.SlugCatClass == name)
                     return true;
                 else
-                    return AmIOnTheRivulet(pup.onBack);
+                    return AmIOnThisCat(pup.onBack, name);
             }
             return false;
         }
@@ -90,6 +91,13 @@ namespace FieldTrip
                 return false;
             bool correctCampaign = player.isNPC && player.abstractCreature.world.game.StoryCharacter == MoreSlugcatsEnums.SlugcatStatsName.Rivulet;
             return  AmIOnTheRivulet(player) || correctCampaign;
+        }
+        public static bool ArtiBombProtectionOptionEligible(Player player)
+        {
+            if (!OptionsMenu.artiBombProtectionOption.GetValue())
+                return false;
+            bool correctCampaign = player.abstractCreature.world.game.StoryCharacter == MoreSlugcatsEnums.SlugcatStatsName.Artificer;
+            return AmIOnTheArtificer(player) || correctCampaign;
         }
         public static bool KillzoneProtectionOptionEligible(Creature creature)
         {

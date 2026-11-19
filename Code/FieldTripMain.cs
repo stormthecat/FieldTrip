@@ -1108,41 +1108,7 @@ namespace FieldTrip
                 throw;
             }
         }
-        private void leechConsiderationHook(ILContext il)
-        {
-            try
-            {
-                ILCursor c = new ILCursor(il);
-                Func<Instruction, bool>[] array = new Func<Instruction, bool>[3];
-                array[0] = ((Instruction i) => i.MatchLdarg(1));
-                array[1] = (i => i.MatchIsinst("Leech"));
-                array[2] = ((Instruction i) => i.Match(OpCodes.Brfalse));
-                c.GotoNext(MoveType.After, array);
-                Func<Instruction, bool>[] array2 = new Func<Instruction, bool>[3];
-                array[0] = ((Instruction i) => i.MatchLdarg(0));
-                array[1] = (i => i.MatchCall<Creature>("get_Template"));
-                array[2] = ((Instruction i) => i.MatchLdarg(1));
-                c.GotoNext(MoveType.Before, array);
-                c.Index++;
-                c.Emit(OpCodes.Pop);
-                ILCursor placeholder = new ILCursor(c);
-                placeholder.GotoNext(i => i.MatchRet());
-                var label = il.DefineLabel();
-                placeholder.MarkLabel(label);
-                c.Emit(OpCodes.Ldarg_1);
-                c.EmitDelegate<Func<Creature, bool>>((critter) =>
-                {
-                    return LeechProtectionOptionEligible(critter as Player);
-                });
-                c.Emit(OpCodes.Brtrue_S, label);
-                c.Emit(OpCodes.Ldarg_0);
-            }
-            catch (Exception e)
-            {
-                base.Logger.LogError("leechConsiderationHook encountered an error: " + e);
-                throw;
-            }
-        }
+
         private void leechCrawlHook(ILContext il)
         {
             try
