@@ -26,14 +26,15 @@ namespace FieldTrip
             IL.Player.ClassMechanicsArtificer += ArtificerAbility_ilHook;
             IL.Creature.Update += CreatureUpdate_ilHook;
             IL.Explosion.Update += ExplosionUpdate_ilHook;
-            IL.Leech.ConsiderOtherCreature += leechConsiderationHook;
-            IL.Leech.Crawl += leechCrawlHook;
+            IL.Leech.Swim += LeechSwim_ilHook;
+            IL.Leech.Crawl += LeechCrawl_ilHook;
             IL.PlayerGraphics.MSCUpdate += playerGraphicsMSCUpdateHook;
             IL.Player.Stun += playerStunILHook;
             IL.Player.TerrainImpact += playerTerrainImpactILHook;
             IL.Spider.ConsiderPrey += spiderConsiderationHook;
 
         }
+
         #region On Hooks
         private void BarnacleUpdate_onHook(On.Watcher.Barnacle.orig_Update orig, Barnacle self, bool eu)
         {
@@ -172,35 +173,52 @@ namespace FieldTrip
                 throw;
             }
         }
-        private void leechConsiderationHook(ILContext il)
+        private void LeechSwim_ilHook(ILContext il)
         {
             try
             {
                 ILCursor c = new ILCursor(il);
-                c.GotoNext(MoveType.After, i => i.MatchLdarg(1),
-                    i => i.MatchIsinst("Leech"),
-                    i => i.Match(OpCodes.Brfalse));
-                c.GotoNext(MoveType.Before, i => i.MatchLdarg(0),
-                    i => i.MatchCall<Creature>("get_Template"),
-                    i => i.MatchLdarg(1));
-
-                c.Index++;
-                c.Emit(OpCodes.Pop);
-                ILCursor placeholder = new ILCursor(c);
-                placeholder.GotoNext(i => i.MatchRet());
-                var label = il.DefineLabel();
-                placeholder.MarkLabel(label);
-                c.Emit(OpCodes.Ldarg_1);
-                c.EmitDelegate<Func<Creature, bool>>((critter) =>
+                c.GotoNext(MoveType.Before, i => i.MatchLdfld<Creature>("leechedOut"));
+                Creature critter = null;
+                c.EmitDelegate((Creature crit) => // grab creature for upcoming check
                 {
-                    return LeechProtectionOptionEligible(critter as Player);
+                    critter = crit;
+                    return crit;
                 });
-                c.Emit(OpCodes.Brtrue_S, label);
-                c.Emit(OpCodes.Ldarg_0);
+                c.Index++; // jump over leeched out so we can use its output
+                c.EmitDelegate((bool leechedOut) =>
+                {
+                    return leechedOut || LeechProtectionOptionEligible(critter as Player);
+                });
             }
             catch (Exception e)
             {
-                base.Logger.LogError("leechConsiderationHook encountered an error: " + e);
+                base.Logger.LogError("LeechSwim_ilHook encountered an error: " + e);
+                throw;
+            }
+        }
+        private void LeechCrawl_ilHook(ILContext il)
+        {
+            try
+            {
+                ILCursor c = new ILCursor(il);
+                c.GotoNext(MoveType.After, i => i.MatchLdsfld<CreatureTemplate.Relationship.Type>("Eats"),
+                    i => i.Match(OpCodes.Call));
+
+                c.Emit(OpCodes.Ldarg_0);
+                c.Emit(OpCodes.Ldloc, 4);
+                c.EmitDelegate((Leech leech, int index) =>  //get creature to check
+                {
+                    return leech.room.abstractRoom.creatures[index].realizedCreature;
+                });
+                c.EmitDelegate((bool val, Creature critter) =>  //prevent grabbing if conditions are met
+                {
+                    return val && (critter == null || !LeechProtectionOptionEligible(critter as Player));
+                });
+            }
+            catch (Exception e)
+            {
+                base.Logger.LogError("LeechCrawl_ilHook encountered an error: " + e);
                 throw;
             }
         }

@@ -1109,35 +1109,7 @@ namespace FieldTrip
             }
         }
 
-        private void leechCrawlHook(ILContext il)
-        {
-            try
-            {
-                ILCursor c = new ILCursor(il);
-                Func<Instruction, bool>[] array = new Func<Instruction, bool>[2];
-                array[0] = ((Instruction i) => i.MatchLdsfld<CreatureTemplate.Relationship.Type>("Eats"));
-                array[1] = ((Instruction i) => i.Match(OpCodes.Call));
-
-                c.GotoNext(MoveType.After, array);
-                c.Emit(OpCodes.Ldarg_0);
-                c.Emit(OpCodes.Ldloc, 4);
-                //get creature to check
-                c.EmitDelegate<Func<Leech, int, Creature>>((leech, val) =>
-                {
-                    return leech.room.abstractRoom.creatures[val].realizedCreature;
-                });
-                //prevent grabbing if conditions are met
-                c.EmitDelegate<Func<bool, Creature, bool>>((val, critter) =>
-                {
-                    return LeechProtectionOptionEligible(critter as Player) ? false : val;
-                });
-            }
-            catch (Exception e)
-            {
-                base.Logger.LogError("leechCrawlHook encountered an error: " + e);
-                throw;
-            }
-        }
+        
 
         private void spiderConsiderationHook(ILContext il)
         {
