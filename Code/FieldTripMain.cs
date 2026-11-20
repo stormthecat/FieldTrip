@@ -66,6 +66,7 @@ namespace FieldTrip
             BindStackingOnHooks();
             BindWarpingOnHooks();
             BindProtectionsOnHooks();
+            BindItemPassingOnHooks();
             On.Player.SlugOnBack.Update += slugOnBackUpdateHook;
             On.Player.GrabUpdate += grabUpdateHook;
             On.Player.SlugOnBack.SlugToHand += slugToHandHook;
@@ -80,10 +81,7 @@ namespace FieldTrip
                 base.Logger.LogError(ex);
             }
 
-            On.Player.Update += playerUpdateHook;
             On.MoreSlugcats.SlugNPCAI.Update += SlugNPCUpdateHook_On;
-            On.Player.CanIPickThisUp += canIPickThisUpdate;
-            On.MoreSlugcats.SlugNPCAI.PassingGrab += passingGrabHook;
             On.PlayerGraphics.Update += playerGraphicsUpdateHook;
             On.PlayerGraphics.InitiateSprites += playerGraphicsInitSpritesHook;
             On.PlayerGraphics.AddToContainer += playerAddToContainerHook;
@@ -97,8 +95,8 @@ namespace FieldTrip
                 BindStackingILHooks();
                 BindWarpingILHooks();
                 BindProtectionsILHooks();
+                BindItemPassingILHooks();
                 IL.MoreSlugcats.SlugNPCAI.Update += SlugNPCUpdateHook;
-                IL.Player.GrabUpdate += grabUpdateILHook;
                 IL.MoreSlugcats.SlugNPCAI.Move += slugNPCMoveHook;
                 IL.Player.SlugOnBack.Update += slugOnBackUpdateILHook;
 
@@ -250,43 +248,6 @@ namespace FieldTrip
             self.AddObjectToInternalContainer(onBack, 0);
         }
 
-        private void playerUpdateHook(On.Player.orig_Update orig, Player self, bool eu)
-        {
-            //Debug.Log(self.ToString() + " camo?: " + self.isCamo);
-            float chargeVal = self.camoCharge;
-            orig(self, eu);
-            if(self.onBack != null)
-            {
-                self.camoProgress = self.onBack.camoProgress;
-                self.isCamo = self.onBack.isCamo;
-                self.camoCharge = chargeVal;
-                self.rippleDeathIntensity = 0;
-                self.rippleDeathTime = 0;
-            }
-        }
-
-
-        private void grabStackForWarp(Player basePup)
-        {
-            StoryGameSession session = basePup?.room?.world?.game?.GetStorySession;
-
-            if (basePup != null && session != null)
-            {
-                if (basePup.spearOnBack?.spear != null)
-                    basePup.spearOnBack.DropSpear();
-                Player nextPup = basePup.slugOnBack?.slugcat;
-                if (nextPup != null || basePup.onBack != null)
-                {
-                    if (session.getFieldtripstoryGameSessionVals().pupStack is null)
-                        session.getFieldtripstoryGameSessionVals().pupStack = new List<Player>();
-                    Debug.Log("SLUGPUP SAFARI: queueing for stack -> " + basePup.ToString());
-                    session.getFieldtripstoryGameSessionVals().pupStack.Add(basePup);
-                    if (nextPup != null)
-                        grabStackForWarp(nextPup);                   
-
-                }
-            }
-        }
 
 
 
@@ -343,28 +304,6 @@ namespace FieldTrip
                 throw;
             }
         }
-
-        private void playerStunILHook(ILContext il)
-        {
-            try
-            {
-                ILCursor c = new ILCursor(il);
-                c.GotoNext(MoveType.After,i => i.MatchLdfld<Player.SlugOnBack>("slugcat"));
-                c.EmitDelegate<Func<object, object>>((obj) =>
-                {
-                    if (OptionsMenu.stunProtectionOption.GetValue())
-                        return null;
-                    return obj;
-                });
-
-            }
-            catch (Exception e)
-            {
-                base.Logger.LogError("playerStunILHook encountered an error : " + e);
-                throw;
-            }
-        }
-
 
 
         private void worldsFunniestILHook(ILContext il)
@@ -1034,34 +973,7 @@ namespace FieldTrip
                 throw;
             }
         }
-        private void playerTerrainImpactILHook(ILContext il)
-        {
-            try
-            {
-                ILCursor c = new ILCursor(il);
-                c.GotoNext(i => i.MatchLdfld<Player>("playerInAntlers"));
-                ILCursor placeholder = new ILCursor(c);
-                placeholder.GotoNext(i => i.MatchLdarg(0));
-                var label = il.DefineLabel();
-                placeholder.MarkLabel(label);
-                c.EmitDelegate<Func<Player, bool>>((slugcat) =>
-                {
-                    if (PupImpactCushionOptionEligible(slugcat))
-                    {
-                        return true;
-                    }
-                    return false;
-                });
-                c.Emit(OpCodes.Brtrue_S, label);
-                c.Emit(OpCodes.Ldarg_0);
-            }
-            catch (Exception e)
-            {
-                base.Logger.LogError("playerTerrainImpactILHook encountered an error: " + e);
-                throw;
-            }
 
-        }
         private void playerGraphicsMSCUpdateHook(ILContext il)
         {
             //prevents pups from retracting arm when holding item

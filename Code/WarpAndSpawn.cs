@@ -162,7 +162,7 @@ namespace FieldTrip
                 for (int i = 0; i < session.Players.Count; i++)
                 {
                     Debug.Log("SLUGPUP SAFARI: saving stack of Player " + (i + 1) + "/" + session.Players.Count);
-                    grabStackForWarp(self.room.game.Players[i].realizedCreature as Player);
+                    GrabStackForWarp(self.room.game.Players[i].realizedCreature as Player);
                     SlugpupTumble(self.room.game.Players[i].realizedCreature as Player);
                 }
             }
@@ -251,6 +251,26 @@ namespace FieldTrip
                     Debug.Log("\tstacking -> " + basePup.ToString() + " onto " + pupStack[index - 1].ToString());
                     pupStack[index - 1].slugOnBack.SlugToBack(basePup);
                     pupStack.RemoveAt(index - 1);
+                }
+            }
+        }
+        private void GrabStackForWarp(Player basePup)
+        {
+            StoryGameSession session = basePup?.room?.world?.game?.GetStorySession;
+
+            if (basePup != null && session != null)
+            {
+                if (basePup.spearOnBack?.spear != null)
+                    basePup.spearOnBack.DropSpear();
+                Player nextPup = basePup.slugOnBack?.slugcat;
+                if (nextPup != null || basePup.onBack != null)
+                {
+                    if (session.getFieldtripstoryGameSessionVals().pupStack is null)
+                        session.getFieldtripstoryGameSessionVals().pupStack = new List<Player>();
+                    Debug.Log("SLUGPUP SAFARI: queueing for stack -> " + basePup.ToString());
+                    session.getFieldtripstoryGameSessionVals().pupStack.Add(basePup);
+                    if (nextPup != null)
+                        GrabStackForWarp(nextPup);
                 }
             }
         }

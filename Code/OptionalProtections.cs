@@ -28,8 +28,7 @@ namespace FieldTrip
             IL.Explosion.Update += ExplosionUpdate_ilHook;
             IL.Leech.Swim += LeechSwim_ilHook;
             IL.Leech.Crawl += LeechCrawl_ilHook;
-            IL.PlayerGraphics.MSCUpdate += playerGraphicsMSCUpdateHook;
-            IL.Player.Stun += playerStunILHook;
+            IL.Player.Stun += PlayerStun_ilHook;
             IL.Player.TerrainImpact += playerTerrainImpactILHook;
             IL.Spider.ConsiderPrey += spiderConsiderationHook;
 
@@ -221,6 +220,55 @@ namespace FieldTrip
                 base.Logger.LogError("LeechCrawl_ilHook encountered an error: " + e);
                 throw;
             }
+        }
+        private void PlayerStun_ilHook(ILContext il)
+        {
+            try
+            {
+                ILCursor c = new ILCursor(il);
+                c.GotoNext(MoveType.After, i => i.MatchLdfld<Player.SlugOnBack>("slugcat"));
+                c.EmitDelegate<Func<object, object>>((obj) =>
+                {
+                    if (OptionsMenu.stunProtectionOption.GetValue())
+                        return null;
+                    return obj;
+                });
+
+            }
+            catch (Exception e)
+            {
+                base.Logger.LogError("PlayerStun_ilHook encountered an error : " + e);
+                throw;
+            }
+        }
+        private void playerTerrainImpactILHook(ILContext il)
+        {
+            // TODO: fix like,,,, all of this
+            try
+            {
+                ILCursor c = new ILCursor(il);
+                c.GotoNext(i => i.MatchLdfld<Player>("playerInAntlers"));
+                ILCursor placeholder = new ILCursor(c);
+                placeholder.GotoNext(i => i.MatchLdarg(0));
+                var label = il.DefineLabel();
+                placeholder.MarkLabel(label);
+                c.EmitDelegate<Func<Player, bool>>((slugcat) =>
+                {
+                    if (PupImpactCushionOptionEligible(slugcat))
+                    {
+                        return true;
+                    }
+                    return slugcat != null;
+                });
+                c.Emit(OpCodes.Brtrue_S, label);
+                c.Emit(OpCodes.Ldarg_0);
+            }
+            catch (Exception e)
+            {
+                base.Logger.LogError("playerTerrainImpactILHook encountered an error: " + e);
+                throw;
+            }
+
         }
         #endregion
         #region Misc

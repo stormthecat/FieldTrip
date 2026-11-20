@@ -18,6 +18,7 @@ namespace FieldTrip
             On.Player.Grabbed += Grabbed_onHook;
             On.Player.SlugOnBack.DropSlug += PlayerDropSlug_onHook;
             On.PlayerGraphics.DrawSprites += PlayerGraphicsDrawSprite_onHook;
+            On.Player.Update += PlayerUpdate_onHook;
             On.Player.SlugOnBack.SlugToBack += SlugToBack_onHook;
         }
         public void BindStackingILHooks()
@@ -74,6 +75,19 @@ namespace FieldTrip
                     if (self.useSimpleCamo)
                         sLeaser.sprites[i].alpha = 1f - self.player.camoProgress;
                 }
+            }
+        }
+        private void PlayerUpdate_onHook(On.Player.orig_Update orig, Player self, bool eu)
+        {
+            float chargeVal = self.camoCharge;
+            orig(self, eu);
+            if (self.onBack != null)
+            {
+                self.camoProgress = self.onBack.camoProgress;
+                self.isCamo = self.onBack.isCamo;
+                self.camoCharge = chargeVal;
+                self.rippleDeathIntensity = 0;
+                self.rippleDeathTime = 0;
             }
         }
         private void SlugToBack_onHook(On.Player.SlugOnBack.orig_SlugToBack orig, Player.SlugOnBack self, Player playerToBack)
