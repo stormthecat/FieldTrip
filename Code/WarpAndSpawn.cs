@@ -33,7 +33,16 @@ namespace FieldTrip
         }
         public void BindWarpingILHooks()
         {
-            IL.Watcher.WarpPoint.Update += WatcherWarpPointUpdate_ilHook;
+            try
+            {
+                IL.Watcher.WarpPoint.Update += WatcherWarpPointUpdate_ilHook;
+
+            }
+            catch (Exception ex)
+            {
+                Debug.Log(string.Format("Slugpup Safari: WarpAndSpawn IL ran into an init error", ex));
+                base.Logger.LogError(ex);
+            }
 
         }
 

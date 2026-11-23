@@ -76,8 +76,9 @@ namespace FieldTrip
         {
             return OptionsMenu.leechProtectionOption.GetValue() && AmIASlugpupOnHead(player);
         }
-        public static bool CoalescipedeProtectionOptionEligible(Player player)
+        public static bool CoalescipedeProtectionOptionEligible(Creature creature)
         {
+            Player player = creature as Player;
             return OptionsMenu.coalescipedeProtectionOption.GetValue() && AmIASlugpupOnHead(player);
         }
         public static bool MirosBirdProtectionOptionEligible(AbstractCreature creature)

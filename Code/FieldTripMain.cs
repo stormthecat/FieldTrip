@@ -765,16 +765,7 @@ namespace FieldTrip
             orig(self);
             //slugNPCInputPrinter(self);
         }
-        private bool canIPickThisUpdate(On.Player.orig_CanIPickThisUp orig, Player self, PhysicalObject obj)
-        {
-            bool defVal = orig(self, obj);
-            if (obj != null && OptionsMenu.keepItemEnabledOption.GetValue() && obj.grabbedBy.Any((Creature.Grasp x) => (x != null && x.grabber != null && x.grabber is Player && (x.grabber as Player).isNPC)))
-                return false;
-            else if (obj != null && AmIASlugpupOnHead(self) && (obj.grabbedBy.Any((Creature.Grasp x) => (x != null && x.grabber != null && x.grabber is Player))))
-                return false;
-            else
-                return defVal;
-        }
+
         private void passingGrabHook(On.MoreSlugcats.SlugNPCAI.orig_PassingGrab orig, SlugNPCAI self)
         {
  
@@ -1023,28 +1014,6 @@ namespace FieldTrip
 
         
 
-        private void spiderConsiderationHook(ILContext il)
-        {
-            try
-            {
-                ILCursor c = new ILCursor(il);
-                c.GotoNext(i => i.Match(OpCodes.Brfalse_S));
-                c.Emit(OpCodes.Ldarg, 1);
-                c.EmitDelegate<Func<bool, Creature, bool>>((origCheck, critter) =>
-                {
-                    if(origCheck == true)
-                    {
-                        return true;
-                    }
-                    return CoalescipedeProtectionOptionEligible(critter as Player);
-                });
-            }
-            catch (Exception e)
-            {
-                base.Logger.LogError("spiderConsiderationHook encountered an error: " + e);
-                throw;
-            }
-        }
 
         void spawnMyFriends(Room room, Vector2 coord)
         {

@@ -1,11 +1,13 @@
 ﻿using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using MoreSlugcats;
+using RWCustom;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UnityEngine;
 using Watcher;
 using static FieldTrip.OptionCriterion;
 
@@ -18,20 +20,29 @@ namespace FieldTrip
         {
             On.Watcher.Barnacle.Update += BarnacleUpdate_onHook;
             On.Player.LungUpdate += LungUpdate_onHook;
+            On.Player.TerrainImpact += TerrainImpact_onHook;
             On.MirosBirdAI.DoIWantToBiteCreature += MirosDoIBite_onHook;
+            On.Spider.ConsiderPrey += SpiderConsiderPrey_onHook;
 
         }
+
         public void BindProtectionsILHooks()
         {
-            IL.Player.ClassMechanicsArtificer += ArtificerAbility_ilHook;
-            IL.Creature.Update += CreatureUpdate_ilHook;
-            IL.Explosion.Update += ExplosionUpdate_ilHook;
-            IL.Leech.Swim += LeechSwim_ilHook;
-            IL.Leech.Crawl += LeechCrawl_ilHook;
-            IL.Player.Stun += PlayerStun_ilHook;
-            IL.Player.TerrainImpact += playerTerrainImpactILHook;
-            IL.Spider.ConsiderPrey += spiderConsiderationHook;
-
+            try
+            {
+                IL.Player.ClassMechanicsArtificer += ArtificerAbility_ilHook;
+                IL.Creature.Update += CreatureUpdate_ilHook;
+                IL.Explosion.Update += ExplosionUpdate_ilHook;
+                IL.Leech.Swim += LeechSwim_ilHook;
+                IL.Leech.Crawl += LeechCrawl_ilHook;
+                IL.Player.Stun += PlayerStun_ilHook;
+                
+            }
+            catch (Exception ex)
+            {
+                Debug.Log(string.Format("Slugpup Safari: OptionalProtection IL ran into an init error", ex));
+                base.Logger.LogError(ex);
+            }
         }
 
         #region On Hooks
@@ -76,9 +87,18 @@ namespace FieldTrip
                 }
             }
         }
+        private void TerrainImpact_onHook(On.Player.orig_TerrainImpact orig, Player self, int chunk, IntVector2 direction, float speed, bool firstContact)
+        {
+            float adjustedSpeed = (PupImpactCushionOptionEligible(self))? Mathf.Clamp01(speed) : speed;
+            orig(self, chunk, direction, adjustedSpeed, firstContact);
+        }
         private bool MirosDoIBite_onHook(On.MirosBirdAI.orig_DoIWantToBiteCreature orig, MirosBirdAI self, AbstractCreature creature)
         {
             return orig(self, creature) && !MirosBirdProtectionOptionEligible(creature);
+        }
+        private bool SpiderConsiderPrey_onHook(On.Spider.orig_ConsiderPrey orig, Spider self, Creature crit)
+        {
+            return orig(self, crit) && !CoalescipedeProtectionOptionEligible(crit);
         }
         #endregion
         #region IL Hooks
@@ -240,35 +260,6 @@ namespace FieldTrip
                 base.Logger.LogError("PlayerStun_ilHook encountered an error : " + e);
                 throw;
             }
-        }
-        private void playerTerrainImpactILHook(ILContext il)
-        {
-            // TODO: fix like,,,, all of this
-            try
-            {
-                ILCursor c = new ILCursor(il);
-                c.GotoNext(i => i.MatchLdfld<Player>("playerInAntlers"));
-                ILCursor placeholder = new ILCursor(c);
-                placeholder.GotoNext(i => i.MatchLdarg(0));
-                var label = il.DefineLabel();
-                placeholder.MarkLabel(label);
-                c.EmitDelegate<Func<Player, bool>>((slugcat) =>
-                {
-                    if (PupImpactCushionOptionEligible(slugcat))
-                    {
-                        return true;
-                    }
-                    return slugcat != null;
-                });
-                c.Emit(OpCodes.Brtrue_S, label);
-                c.Emit(OpCodes.Ldarg_0);
-            }
-            catch (Exception e)
-            {
-                base.Logger.LogError("playerTerrainImpactILHook encountered an error: " + e);
-                throw;
-            }
-
         }
         #endregion
         #region Misc
